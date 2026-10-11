@@ -1,0 +1,44 @@
+public class Diccionario {
+    int total;
+
+    public Diccionario() {
+        total = 5;
+    }
+
+    // Construye la palabra numero "indice" (0 a 4)
+    public Palabra obtener(int indice) {
+        Palabra p = null;
+        switch (indice) {
+            case 0:
+                p = new Palabra(6, "Lenguaje con nombre de serpiente");
+                p.agregarLetra('p'); p.agregarLetra('y'); p.agregarLetra('t');
+                p.agregarLetra('h'); p.agregarLetra('o'); p.agregarLetra('n');
+                break;
+            case 1:
+                p = new Palabra(10, "Traduce codigo fuente a otro lenguaje");
+                p.agregarLetra('c'); p.agregarLetra('o'); p.agregarLetra('m'); p.agregarLetra('p'); p.agregarLetra('i');
+                p.agregarLetra('l'); p.agregarLetra('a'); p.agregarLetra('d'); p.agregarLetra('o'); p.agregarLetra('r');
+                break;
+            case 2:
+                p = new Palabra(5, "El enemigo de la resistencia");
+                p.agregarLetra('c'); p.agregarLetra('e'); p.agregarLetra('r');
+                p.agregarLetra('d'); p.agregarLetra('o');
+                break;
+            case 3:
+                p = new Palabra(9, "Civilizacion aliada");
+                p.agregarLetra('z'); p.agregarLetra('e'); p.agregarLetra('t'); p.agregarLetra('a'); p.agregarLetra('r');
+                p.agregarLetra('i'); p.agregarLetra('a'); p.agregarLetra('n'); p.agregarLetra('o');
+                break;
+            case 4:
+                p = new Palabra(8, "Codigo intermedio ejecutable");
+                p.agregarLetra('b'); p.agregarLetra('y'); p.agregarLetra('t'); p.agregarLetra('e');
+                p.agregarLetra('c'); p.agregarLetra('o'); p.agregarLetra('d'); p.agregarLetra('e');
+                break;
+            default:
+                println("Indice fuera de rango, se usa la palabra 0");
+                p = obtener(0);   // recursividad
+                break;
+        }
+        return p;
+    }
+}

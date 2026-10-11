@@ -1,0 +1,68 @@
+public class Juego {
+    Tablero tablero;
+    Jugador jugador;
+    boolean terminado;
+    String mensaje;
+
+    public Juego(String nombreJugador) {
+        tablero = new Tablero();
+        tablero.inicializar();
+        jugador = new Jugador(nombreJugador, 1, tablero.primeraColumnaLibre(1));
+        terminado = false;
+        mensaje = "Comienza la mision";
+    }
+
+    // dir: 1 = arriba, 2 = abajo, 3 = izquierda, 4 = derecha
+    public boolean mover(int dir) {
+        int nf = jugador.fila;
+        int nc = jugador.columna;
+        switch (dir) {
+            case 1:
+                nf--;
+                break;
+            case 2:
+                nf++;
+                break;
+            case 3:
+                nc--;
+                break;
+            case 4:
+                nc++;
+                break;
+            default:
+                mensaje = "Direccion invalida";
+                return false;
+        }
+        if (!tablero.esValida(nf, nc) || tablero.esPared(nf, nc)) {
+            mensaje = "Choque contra una pared";
+            return false;
+        }
+        jugador.mover(nf, nc);
+        int tipo = tablero.recoger(nf, nc);
+        jugador.sumarPuntos(tablero.puntosPorTipo(tipo));
+        if (tipo == 2) {
+            mensaje = "Encontraste un tesoro! Quedan " + tablero.tesorosRestantes;
+        } else if (tipo == 3) {
+            jugador.perderVida();
+            mensaje = "Pisaste una trampa! Vidas: " + jugador.vidas;
+        } else if (tipo == 4) {
+            mensaje = "Gema bonus!";
+        } else {
+            mensaje = "Avanzas a (" + nf + "," + nc + ")";
+        }
+        if (!jugador.estaVivo()) {
+            terminado = true;
+            mensaje = mensaje + " -- Te quedaste sin vidas";
+        } else if (tablero.tesorosRestantes == 0) {
+            terminado = true;
+            mensaje = mensaje + " -- Recogiste todos los tesoros";
+        }
+        return true;
+    }
+
+    // Operador ternario
+    public String obtenerVeredicto() {
+        String veredicto = (jugador.puntos >= 100) ? "Mision cumplida" : "Mision fallida";
+        return veredicto;
+    }
+}

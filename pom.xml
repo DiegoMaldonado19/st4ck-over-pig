@@ -6,14 +6,24 @@
     <version>1.0-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
+        <antlr.version>4.13.2</antlr.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>21.0.9</version>
+        </dependency>
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-runtime</artifactId>
+            <version>${antlr.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.fxmisc.richtext</groupId>
+            <artifactId>richtextfx</artifactId>
+            <version>0.11.3</version>
         </dependency>
     </dependencies>
     <build>
@@ -22,9 +32,23 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>${antlr.version}</version>
                 <configuration>
-                    <release>11</release>
+                    <sourceDirectory>${basedir}/src/main/antlr4</sourceDirectory>
+                    <!-- The AST is built with the visitors ANTLR generates; a listener would be dead code. -->
+                    <listener>false</listener>
+                    <visitor>true</visitor>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>antlr</id>
+                        <goals><goal>antlr4</goal></goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.openjfx</groupId>
@@ -32,6 +56,12 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>com.dmaldonado.st4ck.over.pig.App</mainClass>
+                    <!-- JavaFX 21 on a newer JDK: native access and Marlin's sun.misc.Unsafe
+                         print warnings at startup. The -D form is ignored by JDK 21. -->
+                    <options>
+                        <option>--enable-native-access=javafx.graphics</option>
+                        <option>-Dsun.misc.unsafe.memory.access=allow</option>
+                    </options>
                 </configuration>
                 <executions>
                     <execution>

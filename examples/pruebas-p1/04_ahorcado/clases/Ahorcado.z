@@ -1,0 +1,90 @@
+public class Ahorcado {
+    Palabra palabra;
+    int errores;
+    int maxErrores;
+    char[] usadas;
+    int numUsadas;
+
+    public Ahorcado(Palabra palabraParametro, int intentosMaximos) {
+        palabra = palabraParametro;
+        maxErrores = intentosMaximos;
+        errores = 0;
+        usadas = new char[40];
+        numUsadas = 0;
+    }
+
+    public boolean yaUsada(char c) {
+        for (int i = 0; i < numUsadas; i++) {
+            if (usadas[i] == c)
+                return true;
+        }
+        return false;
+    }
+
+    // Retorna: 0 = letra repetida, 1 = acierto, 2 = fallo
+    public int intentar(char c) {
+        if (yaUsada(c))
+            return 0;
+        if (numUsadas < 40) {
+            usadas[numUsadas] = c;
+            numUsadas++;
+        }
+        if (palabra.contiene(c)) {
+            palabra.revelar(c);
+            return 1;
+        }
+        errores++;
+        return 2;
+    }
+
+    public boolean gano() {
+        return palabra.estaCompleta();
+    }
+
+    public boolean perdio() {
+        return errores >= maxErrores;
+    }
+
+    public boolean terminoJuego() {
+        return gano() || perdio();
+    }
+
+    public int intentosRestantes() {
+        return maxErrores - errores;
+    }
+
+    public void dibujar() {
+        String cabeza = "      |";
+        String cuerpo = "      |";
+        String piernas = "      |";
+        if (errores > 0)
+            cabeza = "  O   |";
+        if (errores == 2)
+            cuerpo = "  |   |";
+        else if (errores == 3)
+            cuerpo = " -|   |";
+        else if (errores > 3)
+            cuerpo = " -|-  |";
+        if (errores == 5)
+            piernas = " ^    |";
+        else if (errores > 5)
+            piernas = " ^ ^  |";
+        println("  +---+");
+        println("  |   |");
+        println(cabeza);
+        println(cuerpo);
+        println(piernas);
+        println("      |");
+        println("=========");
+    }
+
+    public void mostrarEstado() {
+        println("Errores: " + errores + "/" + maxErrores + " | Intentos restantes: " + intentosRestantes());
+        print("Letras usadas: ");
+        for (int i = 0; i < numUsadas; i++) {
+            print(usadas[i] + " ");
+        }
+        println("");
+        palabra.imprimirProgreso();
+    }
+}

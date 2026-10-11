@@ -1,0 +1,70 @@
+public class Palabra {
+    char[] letras;
+    boolean[] descubiertas;
+    int longitud;
+    int cantidad;
+    String pista;
+
+    public Palabra(int tamanio, String pistaParametro) {
+        letras = new char[tamanio];
+        descubiertas = new boolean[tamanio];
+        longitud = tamanio;
+        cantidad = 0;
+        pista = pistaParametro;
+    }
+
+    public void agregarLetra(char c) {
+        if (cantidad < longitud) {
+            letras[cantidad] = c;
+            descubiertas[cantidad] = false;
+            cantidad++;
+        }
+    }
+
+    public boolean contiene(char c) {
+        for (int i = 0; i < longitud; i++) {
+            if (letras[i] == c)
+                return true;
+        }
+        return false;
+    }
+
+    // Devuelve cuantas letras nuevas se descubrieron
+    public int revelar(char c) {
+        int aciertos = 0;
+        for (int i = 0; i < longitud; i++) {
+            if (letras[i] == c && descubiertas[i] == false) {
+                descubiertas[i] = true;
+                aciertos++;
+            }
+        }
+        return aciertos;
+    }
+
+    public boolean estaCompleta() {
+        for (int i = 0; i < longitud; i++) {
+            if (!descubiertas[i])
+                return false;
+        }
+        return true;
+    }
+
+    public void revelarTodo() {
+        int i = 0;
+        while (i < longitud) {
+            descubiertas[i] = true;
+            i++;
+        }
+    }
+
+    public void imprimirProgreso() {
+        String linea = "";
+        for (int i = 0; i < longitud; i++) {
+            if (descubiertas[i])
+                linea = linea + letras[i] + " ";
+            else
+                linea = linea + "_ ";
+        }
+        println(linea);
+    }
+}

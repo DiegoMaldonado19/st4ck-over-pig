@@ -1,0 +1,198 @@
+public class Tablero {
+    // Codigos de celda: 0 = libre, 1 = pared, 2 = tesoro, 3 = trampa, 4 = gema bonus
+    int[][] celdas;
+    boolean[][] visitado;
+    int filas;
+    int columnas;
+    int tesorosRestantes;
+
+    public Tablero(int f, int c) {
+        filas = f;
+        columnas = c;
+        celdas = new int[f][c];
+        visitado = new boolean[f][c];
+        tesorosRestantes = 0;
+    }
+
+    // Sobrecarga: tablero por defecto de 7 x 9
+    public Tablero() {
+        filas = 7;
+        columnas = 9;
+        celdas = new int[7][9];
+        visitado = new boolean[7][9];
+        tesorosRestantes = 0;
+    }
+
+    public boolean esValida(int f, int c) {
+        return f >= 0 && f < filas && c >= 0 && c < columnas;
+    }
+
+    public boolean esPared(int f, int c) {
+        if (!esValida(f, c))
+            return true;
+        return celdas[f][c] == 1;
+    }
+
+    public void colocar(int f, int c, int tipo) {
+        if (!esValida(f, c)) {
+            println("Posicion invalida: " + f + "," + c);
+            return;
+        }
+        celdas[f][c] = tipo;
+        if (tipo == 2)
+            tesorosRestantes++;
+    }
+
+    public void inicializar() {
+        tesorosRestantes = 0;
+        for (int i = 0; i < filas; i++) {
+            for (int j = 0; j < columnas; j++) {
+                if (i == 0 || j == 0 || i == filas - 1 || j == columnas - 1) {
+                    celdas[i][j] = 1;
+                } else {
+                    celdas[i][j] = 0;
+                }
+            }
+        }
+        // paredes interiores
+        colocar(2, 2, 1);
+        colocar(2, 3, 1);
+        colocar(2, 4, 1);
+        colocar(4, 4, 1);
+        colocar(4, 5, 1);
+        colocar(4, 6, 1);
+        // tesoros
+        colocar(1, 7, 2);
+        colocar(3, 1, 2);
+        colocar(5, 4, 2);
+        colocar(5, 7, 2);
+        // trampas
+        colocar(3, 3, 3);
+        colocar(3, 5, 3);
+        colocar(5, 2, 3);
+        // gema bonus
+        colocar(2, 7, 4);
+    }
+
+    // Prueba de switch con caida (fallthrough) intencional en el caso 2
+    public int puntosPorTipo(int tipo) {
+        int puntos = 0;
+        switch (tipo) {
+            case 2:
+                puntos += 50;
+                // sin break: cae al caso 4 a proposito
+            case 4:
+                puntos += 10;
+                break;
+            case 3:
+                puntos -= 20;
+                break;
+            default:
+                puntos = 0;
+        }
+        return puntos;
+    }
+
+    public int recoger(int f, int c) {
+        int tipo = celdas[f][c];
+        if (tipo == 2) {
+            tesorosRestantes--;
+            celdas[f][c] = 0;
+        } else if (tipo == 3 || tipo == 4) {
+            celdas[f][c] = 0;
+        }
+        return tipo;
+    }
+
+    // continue dentro de for anidado
+    public int contarTipo(int tipo) {
+        int cuenta = 0;
+        for (int i = 0; i < filas; i++) {
+            for (int j = 0; j < columnas; j++) {
+                if (celdas[i][j] != tipo)
+                    continue;
+                cuenta++;
+            }
+        }
+        return cuenta;
+    }
+
+    // do-while
+    public int primeraColumnaLibre(int f) {
+        int c = 0;
+        do {
+            c++;
+        } while (c < columnas && celdas[f][c] == 1);
+        return c;
+    }
+
+    // for(;;) con break y asignacion compuesta
+    public int distanciaAPared(int f, int c, int df, int dc) {
+        int pasos = 0;
+        int nf = f;
+        int nc = c;
+        for ( ; ; ) {
+            nf += df;
+            nc += dc;
+            if (!esValida(nf, nc) || celdas[nf][nc] == 1)
+                break;
+            pasos++;
+        }
+        return pasos;
+    }
+
+    // Recursividad (flood fill) usando el arreglo visitado
+    public int explorar(int f, int c) {
+        if (!esValida(f, c))
+            return 0;
+        if (celdas[f][c] == 1)
+            return 0;
+        if (visitado[f][c])
+            return 0;
+        visitado[f][c] = true;
+        return 1 + explorar(f - 1, c) + explorar(f + 1, c) + explorar(f, c - 1) + explorar(f, c + 1);
+    }
+
+    public int contarAccesibles(int f, int c) {
+        visitado = new boolean[filas][columnas];
+        return explorar(f, c);
+    }
+
+    public void imprimir(int filaJugador, int colJugador) {
+        String encabezado = "  ";
+        for (int j = 0; j < columnas; j++) {
+            encabezado = encabezado + j + " ";
+        }
+        println(encabezado);
+        for (int i = 0; i < filas; i++) {
+            String linea = i + " ";
+            for (int j = 0; j < columnas; j++) {
+                if (i == filaJugador && j == colJugador) {
+                    linea = linea + "P ";
+                } else {
+                    switch (celdas[i][j]) {
+                        case 0:
+                            linea = linea + ". ";
+                            break;
+                        case 1:
+                            linea = linea + "# ";
+                            break;
+                        case 2:
+                            linea = linea + "$ ";
+                            break;
+                        case 3:
+                            linea = linea + "X ";
+                            break;
+                        case 4:
+                            linea = linea + "* ";
+                            break;
+                        default:
+                            linea = linea + "? ";
+                            break;
+                    }
+                }
+            }
+            println(linea);
+        }
+    }
+}

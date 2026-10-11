@@ -1,0 +1,175 @@
+public class Demo {
+    int contador;
+
+    public Demo() {
+        contador = 0;
+    }
+
+    public void expresiones() {
+        int a = 10 ;
+        int b = 3 ;
+        int suma = a + b; // 13
+        int resta = a - b; // 7
+        int multiplicacion = a * b; // 30
+        int division = a / b; // 3 (división entera)
+        int modulo = a % b; // 1 (residuo de la división)
+        println("suma=" + suma + " resta=" + resta + " mult=" + multiplicacion + " div=" + division + " mod=" + modulo);
+        a++;
+        b--;
+        println("a=" + a + " b=" + b);
+        boolean esMayor = (a > b);
+        boolean esIgual = (a == 10 );
+        boolean condicionAnd = (a > 5 && b < 10 );
+        boolean condicionOr = (a > 20 || b > 0 );
+        boolean condicionNot = !(a == 10 );
+        println("esMayor=" + esMayor + " esIgual=" + esIgual + " and=" + condicionAnd + " or=" + condicionOr + " not=" + condicionNot);
+        int x = 5 ;
+        x += 3 ;
+        x -= 2 ;
+        x *= 2 ;
+        println("x=" + x);
+        int edad = 20 ;
+        String mensaje = (edad >= 18 )? "Es mayor de edad" : "Es menor de edad";
+        int numero = 7 ;
+        int esParOImpar = (numero % 2 == 0 )? 0 : 1 ;
+        println(mensaje);
+        println(esParOImpar);
+        double altura = 1.75;
+        char inicial = 'A';
+        println(altura + " " + inicial + " " + (a / 2.0));
+    }
+
+    public void arreglos() {
+        int[] numeros = { 10 , 20 , 30 , 40 , 50 };
+        int resultado;
+        resultado = numeros[ 0 ] + numeros[ 1 ];
+        numeros[ 2 ] = numeros[ 0 ] * 3 ;
+        println("resultado=" + resultado + " numeros[2]=" + numeros[2]);
+        int[] calificaciones = new int[ 5 ];
+        String[] nombres = {"Carlos", "Ana", "Pedro"};
+        int[][] matriz = new int[ 3 ][ 3 ];
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                matriz[i][j] = i * 3 + j;
+            }
+        }
+        calificaciones[4] = 100;
+        println(nombres[1] + " " + calificaciones[4] + " " + matriz[2][1]);
+        int[][][] cubo = {
+            { {1, 2}, {3, 4} },
+            { {5, 6}, {7, 8} }
+        };
+        println("cubo=" + cubo[1][0][1] + " " + cubo[0][1][0]);
+    }
+
+    public void objetos() {
+        Persona p1 = new Persona("Carlos", 25 );
+        Persona p2 = new Persona("Ana", 30 );
+        int sumaEdades;
+        String mensajeClasificacion;
+        sumaEdades = p1.edad + p2.edad; // 25 + 30 = 55
+        mensajeClasificacion = (p1.edad >= 18 )? "Adulto" : "Menor";
+        int anioNac = 2026 - p1.obtenerEdad();
+        println(sumaEdades + " " + mensajeClasificacion + " " + anioNac);
+        Persona alumno1; // apunta a null
+        if(alumno1 == null){
+            print("Es posible comparar si un objeto es nulo");
+            println();
+        }
+        alumno1 = new Persona("Carlos", 20 );
+        Persona profesor = new Persona("Ana", 45 );
+        Persona sinNombre = new Persona();
+        sinNombre.saludar();
+        alumno1.saludar();
+        profesor.saludar();
+        println(p1.calcularAnioNacimiento(2026));
+        println(alumno1 != profesor);
+    }
+
+    public void control() {
+        int edad = 18 ;
+        int opcion = 2 ;
+        if (edad > 18 ) {
+            println("Es mayor de edad.");
+        } else if (edad == 18 ) {
+            println("¡Justo tiene 18 años!");
+        } else {
+            println("Es menor de edad.");
+        }
+        if (edad >= 18 )
+            println("Es adulto"); // Una sola instrucción sin llaves
+        else
+            println("Es menor"); // Una sola instrucción sin llaves
+        boolean condicion = true;
+        boolean otraCondicion = false;
+        if (condicion == true)
+            if(otraCondicion == false)
+                print("hola");
+        println();
+        if (condicion == false)
+            if (otraCondicion == false)
+                println("no debe imprimirse");
+            else
+                println("tampoco: el else es del if interno");
+        switch (opcion) {
+            case 1 :
+                println("Opción 1 seleccionada");
+                break; // Crucial para salir del switch, opcional
+            case 2 :
+                println("Opción 2 seleccionada");
+                // No hay un break, también ejecutará la opción default
+            default:
+                println("Opción no válida");
+                break;
+        }
+    }
+
+    public void ciclos() {
+        for (int i = 0 ; i < 5 ; i++) {
+            println("Iteración número: " + i);
+            if (i == 2 ) {
+                continue; // Salta a la siguiente iteración cuando i es 2
+            }
+            if (i == 4 ) {
+                break; // Rompe y sale del ciclo por completo cuando i es 4
+            }
+        }
+        for ( ; ; ) { // todos sus parametros son opcionales
+            println("Este bucle nunca termina a menos que use un break...");
+            break;
+        }
+        int contador = 0 ;
+        while (contador < 3 ) {
+            println("Contador while: " + contador);
+            contador++;
+            if (contador == 1 ) {
+                continue; // Salta el resto del ciclo y vuelve a evaluar la condición
+            }
+        }
+        int intentos = 0 ;
+        do {
+            intentos++;
+            println("Intento número: " + intentos);
+            if (intentos == 2 ) {
+                break; // Rompe el ciclo do-while inmediatamente
+            }
+        } while (intentos < 5 );
+    }
+
+    public int factorial(int n) {
+        if (n <= 1)
+            return 1;
+        return n * factorial(n - 1);
+    }
+
+    public void contar() {
+        contador += 1;
+    }
+
+    public void leer() {
+        print("Nombre: ");
+        String nombre = readln();
+        int edad = readln();
+        println("Hola " + nombre + ", el proximo anio tendras " + (edad + 1));
+    }
+}

@@ -1,0 +1,54 @@
+public class Jugador {
+    // Atributos publicos
+    String nombre;
+    int fila;
+    int columna;
+    int puntos;
+    int movimientos;
+    int vidas;
+    char simbolo;
+
+    // Constructor principal
+    public Jugador(String nombreParametro, int filaInicial, int columnaInicial) {
+        nombre = nombreParametro;
+        fila = filaInicial;
+        columna = columnaInicial;
+        puntos = 0;
+        movimientos = 0;
+        vidas = 3;
+        simbolo = 'P';
+    }
+
+    // Sobrecarga de constructor
+    public Jugador() {
+        nombre = "Anonimo";
+        fila = 0;
+        columna = 0;
+        puntos = 0;
+        movimientos = 0;
+        vidas = 3;
+        simbolo = 'P';
+    }
+
+    public void sumarPuntos(int cantidad) {
+        puntos += cantidad;
+    }
+
+    public void perderVida() {
+        vidas--;
+    }
+
+    public boolean estaVivo() {
+        return vidas > 0;
+    }
+
+    public void mover(int nuevaFila, int nuevaColumna) {
+        fila = nuevaFila;
+        columna = nuevaColumna;
+        movimientos++;
+    }
+
+    public void mostrarEstado() {
+        println("Jugador: " + nombre + " (" + simbolo + ") | Puntos: " + puntos + " | Vidas: " + vidas + " | Movimientos: " + movimientos);
+    }
+}

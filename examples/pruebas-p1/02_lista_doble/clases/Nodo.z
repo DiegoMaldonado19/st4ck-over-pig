@@ -1,0 +1,11 @@
+public class Nodo {
+    int dato;
+    Nodo siguiente;
+    Nodo anterior;
+
+    public Nodo(int valor) {
+        dato = valor;
+        siguiente = null;
+        anterior = null;
+    }
+}

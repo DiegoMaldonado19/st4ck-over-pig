@@ -1,0 +1,91 @@
+/* =====================================================================
+ *  Paleta del editor.
+ *
+ *  Quien decide que clase lleva cada palabra es HighlightingCodeArea, con
+ *  el LatinLexer real; aqui solo se dice de que color se pinta cada clase.
+ *  Los colores son los de Iteracion II (Constants.java), adaptados a CSS.
+ *
+ *  Todas las reglas van anidadas bajo .source-editor a proposito: JavaFX ya
+ *  usa "text" como clase de estilo interna de cada Label, asi que una regla
+ *  suelta .text pinta la interfaz ENTERA del color del editor. Por lo mismo
+ *  la clase neutral se llama "plain" y no "text".
+ * ===================================================================== */
+
+.source-editor .keyword { -fx-fill: #E58F65; -fx-font-weight: bold; }
+.source-editor .type    { -fx-fill: #6FBF73; -fx-font-weight: bold; }
+.source-editor .number  { -fx-fill: #B5CEA8; }
+.source-editor .string  { -fx-fill: #CE9178; }
+.source-editor .comment { -fx-fill: #6A9955; -fx-font-style: italic; }
+.source-editor .plain   { -fx-fill: #E8E8E8; }
+.source-editor .invalid { -fx-fill: #F14C4C; -fx-underline: true; }
+
+/* La paleta es para fondo oscuro, asi que el editor lleva el suyo. El resto
+   de la interfaz se queda con el tema por defecto de JavaFX. */
+.source-editor
+{
+    -fx-background-color: #1E1E1E;
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 14px;
+}
+
+.source-editor .caret     { -fx-stroke: #E8E8E8; }
+.source-editor .selection { -fx-fill: #264F78; }
+
+.source-editor .lineno
+{
+    -fx-background-color: #1E1E1E;
+    -fx-text-fill: #858585;
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 13px;
+}
+
+/* ------------------------- Resto de la interfaz ------------------------ */
+
+.panel-title
+{
+    -fx-font-weight: bold;
+    -fx-padding: 4 2 6 2;
+}
+
+.compile-button
+{
+    -fx-font-weight: bold;
+}
+
+.process-stack,
+.code-output
+{
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 13px;
+}
+
+.status-ok    { -fx-text-fill: #2E7D32; -fx-font-weight: bold; }
+.status-error { -fx-text-fill: #C62828; -fx-font-weight: bold; }
+
+/* ------------------------------ Arbol AST ------------------------------ */
+/* Mismo tema oscuro que el editor, y la linea:columna atenuada a la derecha. */
+
+.ast-tree,
+.ast-tree .tree-cell
+{
+    -fx-background-color: #1E1E1E;
+    -fx-text-fill: #E8E8E8;
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 13px;
+}
+
+.ast-tree .tree-cell:selected
+{
+    -fx-background-color: #264F78;
+}
+
+.ast-tree .tree-disclosure-node .arrow
+{
+    -fx-background-color: #858585;
+}
+
+.ast-position
+{
+    -fx-text-fill: #858585;
+    -fx-font-size: 11px;
+}

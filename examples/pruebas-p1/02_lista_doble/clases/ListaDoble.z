@@ -1,0 +1,259 @@
+public class ListaDoble {
+    Nodo cabeza;
+    Nodo cola;
+    int tamanio;
+
+    public ListaDoble() {
+        cabeza = null;
+        cola = null;
+        tamanio = 0;
+    }
+
+    // Sobrecarga de constructor: lista con un primer valor
+    public ListaDoble(int primerValor) {
+        cabeza = null;
+        cola = null;
+        tamanio = 0;
+        insertarFinal(primerValor);
+    }
+
+    public boolean estaVacia() {
+        return cabeza == null;
+    }
+
+    /* ---------- Inserciones ---------- */
+
+    public void insertarInicio(int valor) {
+        Nodo nuevo = new Nodo(valor);
+        if (cabeza == null) {
+            cabeza = nuevo;
+            cola = nuevo;
+        } else {
+            nuevo.siguiente = cabeza;
+            cabeza.anterior = nuevo;
+            cabeza = nuevo;
+        }
+        tamanio++;
+    }
+
+    public void insertarFinal(int valor) {
+        Nodo nuevo = new Nodo(valor);
+        if (cola == null) {
+            cabeza = nuevo;
+            cola = nuevo;
+        } else {
+            nuevo.anterior = cola;
+            cola.siguiente = nuevo;
+            cola = nuevo;
+        }
+        tamanio++;
+    }
+
+    // Sobrecarga de metodo: inserta dos valores al final
+    public void insertarFinal(int a, int b) {
+        insertarFinal(a);
+        insertarFinal(b);
+    }
+
+    public boolean insertarEn(int pos, int valor) {
+        if (pos < 0 || pos > tamanio)
+            return false;
+        if (pos == 0) {
+            insertarInicio(valor);
+            return true;
+        }
+        if (pos == tamanio) {
+            insertarFinal(valor);
+            return true;
+        }
+        Nodo actual = obtenerNodo(pos);
+        Nodo nuevo = new Nodo(valor);
+        nuevo.anterior = actual.anterior;
+        nuevo.siguiente = actual;
+        actual.anterior.siguiente = nuevo;
+        actual.anterior = nuevo;
+        tamanio++;
+        return true;
+    }
+
+    /* ---------- Eliminaciones ---------- */
+
+    public boolean eliminarInicio() {
+        if (cabeza == null)
+            return false;
+        if (cabeza == cola) {
+            cabeza = null;
+            cola = null;
+        } else {
+            cabeza = cabeza.siguiente;
+            cabeza.anterior = null;
+        }
+        tamanio--;
+        return true;
+    }
+
+    public boolean eliminarFinal() {
+        if (cola == null)
+            return false;
+        if (cabeza == cola) {
+            cabeza = null;
+            cola = null;
+        } else {
+            cola = cola.anterior;
+            cola.siguiente = null;
+        }
+        tamanio--;
+        return true;
+    }
+
+    public boolean eliminarEn(int pos) {
+        if (pos < 0 || pos >= tamanio)
+            return false;
+        if (pos == 0)
+            return eliminarInicio();
+        if (pos == tamanio - 1)
+            return eliminarFinal();
+        Nodo actual = obtenerNodo(pos);
+        actual.anterior.siguiente = actual.siguiente;
+        actual.siguiente.anterior = actual.anterior;
+        tamanio--;
+        return true;
+    }
+
+    // Elimina la primera aparicion del valor
+    public boolean eliminarValor(int valor) {
+        int indice = buscar(valor);
+        if (indice == -1)
+            return false;
+        return eliminarEn(indice);
+    }
+
+    public void vaciar() {
+        cabeza = null;
+        cola = null;
+        tamanio = 0;
+    }
+
+    /* ---------- Consultas ---------- */
+
+    // Recorre desde la cabeza o desde la cola segun cual este mas cerca
+    public Nodo obtenerNodo(int pos) {
+        if (pos < 0 || pos >= tamanio)
+            return null;
+        Nodo actual = null;
+        if (pos < tamanio / 2) {
+            actual = cabeza;
+            for (int i = 0; i < pos; i++)
+                actual = actual.siguiente;
+        } else {
+            actual = cola;
+            for (int i = tamanio - 1; i > pos; i--)
+                actual = actual.anterior;
+        }
+        return actual;
+    }
+
+    public int obtener(int pos) {
+        Nodo n = obtenerNodo(pos);
+        return (n == null) ? -1 : n.dato;
+    }
+
+    public int buscar(int valor) {
+        Nodo actual = cabeza;
+        int indice = 0;
+        while (actual != null) {
+            if (actual.dato == valor)
+                return indice;
+            actual = actual.siguiente;
+            indice++;
+        }
+        return -1;
+    }
+
+    public int maximo() {
+        if (cabeza == null)
+            return 0;
+        int max = cabeza.dato;
+        Nodo actual = cabeza.siguiente;
+        while (actual != null) {
+            if (actual.dato > max)
+                max = actual.dato;
+            actual = actual.siguiente;
+        }
+        return max;
+    }
+
+    // Recursividad sobre los nodos
+    public int sumaRecursiva(Nodo actual) {
+        if (actual == null)
+            return 0;
+        return actual.dato + sumaRecursiva(actual.siguiente);
+    }
+
+    public int suma() {
+        return sumaRecursiva(cabeza);
+    }
+
+    /* ---------- Transformaciones ---------- */
+
+    // Intercambia los enlaces de cada nodo y luego cabeza/cola
+    public void invertir() {
+        Nodo actual = cabeza;
+        Nodo temporal = null;
+        while (actual != null) {
+            temporal = actual.anterior;
+            actual.anterior = actual.siguiente;
+            actual.siguiente = temporal;
+            actual = actual.anterior;
+        }
+        temporal = cabeza;
+        cabeza = cola;
+        cola = temporal;
+    }
+
+    // Burbuja intercambiando los datos (do-while + acceso encadenado)
+    public void ordenar() {
+        boolean cambio;
+        do {
+            cambio = false;
+            Nodo actual = cabeza;
+            while (actual != null && actual.siguiente != null) {
+                if (actual.dato > actual.siguiente.dato) {
+                    int aux = actual.dato;
+                    actual.dato = actual.siguiente.dato;
+                    actual.siguiente.dato = aux;
+                    cambio = true;
+                }
+                actual = actual.siguiente;
+            }
+        } while (cambio);
+    }
+
+    /* ---------- Impresion ---------- */
+
+    public void imprimirAdelante() {
+        String linea = "[";
+        Nodo actual = cabeza;
+        while (actual != null) {
+            linea = linea + actual.dato;
+            if (actual.siguiente != null)
+                linea = linea + " <-> ";
+            actual = actual.siguiente;
+        }
+        linea = linea + "]";
+        println(linea);
+    }
+
+    public void imprimirAtras() {
+        String linea = "[";
+        Nodo actual = cola;
+        while (actual != null) {
+            linea = linea + actual.dato;
+            if (actual.anterior != null)
+                linea = linea + " <-> ";
+            actual = actual.anterior;
+        }
+        linea = linea + "]";
+        println(linea);
+    }
+}

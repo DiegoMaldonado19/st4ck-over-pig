@@ -1,0 +1,31 @@
+public class Persona {
+    // Atributos públicos (el encapsulamiento se verá en la Parte 2)
+    String nombre;
+    int edad;
+
+    // CONSTRUCTOR: Sirve para inicializar el objeto al crearlo
+    public Persona(String nombreParametro, int edadParametro) {
+        nombre = nombreParametro;
+        edad = edadParametro;
+    }
+
+    /* Sobrecarga de constructor,
+       tambien se pueden sobrecargar metodos. */
+    public Persona() {
+        nombre = "Sin nombre";
+        edad = 0 ;
+    }
+
+    // MÉTODOS: Acciones o comportamientos que puede realizar el objeto
+    public void saludar() {
+        println("¡Hola! Me llamo " + nombre + " y tengo " + edad + " años.");
+    }
+
+    public int calcularAnioNacimiento(int anioActual) {
+        return anioActual - edad;
+    }
+
+    public int obtenerEdad() {
+        return edad;
+    }
+}

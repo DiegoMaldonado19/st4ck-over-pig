@@ -1,0 +1,15 @@
+public class Hola {
+    String mensaje;
+
+    public Hola() {
+        mensaje = "Hola Mundo desde Zetariano";
+    }
+
+    public void decir() {
+        println(mensaje);
+    }
+
+    public int doble(int n) {
+        return n * 2;
+    }
+}
