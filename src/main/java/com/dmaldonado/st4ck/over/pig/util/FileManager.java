@@ -114,13 +114,13 @@ public final class FileManager
         return dot < 0 ? "" : fileName.substring(dot + 1).toLowerCase();
     }
 
-    /** Swaps the source extension for .c keeping the base name. */
-    public static Path outputPathFor(Path sourcePath)
+    /** Swaps the source extension for the output's, keeping the base name. */
+    public static Path outputPathFor(Path sourcePath, String extension)
     {
         String name = sourcePath.getFileName().toString();
         int    dot  = name.lastIndexOf('.');
         String base = (dot > 0) ? name.substring(0, dot) : name;
 
-        return sourcePath.resolveSibling(base + "." + Constants.OUTPUT_EXTENSION);
+        return sourcePath.resolveSibling(base + "." + extension);
     }
 }

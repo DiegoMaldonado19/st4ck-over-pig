@@ -69,6 +69,7 @@ public class ApplicationController
         view.getExportFolderButton().setOnAction(event -> exportFolder());
         view.getCompileButton().setOnAction(event -> compile());
         view.getExportButton().setOnAction(event -> exportGeneratedC());
+        view.getExportAssemblyButton().setOnAction(event -> exportAssembly());
         view.getExportTreeButton().setOnAction(event -> exportTree());
         view.getEditorTabs().getSelectionModel().selectedItemProperty()
                 .addListener((observable, previous, current) -> showFileName());
@@ -159,10 +160,13 @@ public class ApplicationController
         view.showAst(lastResult.isValid() ? AstTreeBuilder.build(lastResult.ast()) : null);
         view.showQuadruples(lastResult.quadruples());
         view.showGeneratedC(lastResult.cCode());
+        view.showThreeAddressCode(lastResult.threeAddressCode());
+        view.showAssembly(lastResult.assembly());
 
         // Un .y o un .z valido no trae C: no tiene MAIOR que ejecutar.
         boolean translated = !lastResult.cCode().isEmpty();
         view.getExportButton().setDisable(!translated);
+        view.getExportAssemblyButton().setDisable(lastResult.assembly().isEmpty());
 
         // La pila se muestra compile o no: el archivo invalido es justo aquel
         // cuyos pasos ERROR hay que leer.
@@ -399,12 +403,29 @@ public class ApplicationController
         }
 
         // lo que el usuario ve, junto al archivo que lo produjo
-        Path saved = files.saveGeneratedC(compiled.getPath(), view.getGeneratedCText());
+        Path saved = files.saveOutput(compiled.getPath(), view.getGeneratedCText(), Constants.OUTPUT_EXTENSION);
 
         if (saved != null)
         {
             refreshWorkspace();
             view.setStatus("Codigo C descargado en " + saved.toAbsolutePath());
+        }
+    }
+
+    /** The RISC-V the user sees, next to the file it came from: ready for RARS. */
+    private void exportAssembly()
+    {
+        if (lastResult == null || lastResult.assembly().isEmpty())
+        {
+            return;
+        }
+
+        Path saved = files.saveOutput(compiled.getPath(), view.getAssemblyText(), Constants.ASSEMBLY_EXTENSION);
+
+        if (saved != null)
+        {
+            refreshWorkspace();
+            view.setStatus("Ensamblador RISC-V descargado en " + saved.toAbsolutePath());
         }
     }
 

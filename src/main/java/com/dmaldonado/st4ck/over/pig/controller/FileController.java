@@ -95,12 +95,12 @@ public class FileController
         return destination != null && write(destination, editor.getCodeArea().getText()) ? destination : null;
     }
 
-    /** Downloads the generated C next to its source, with the same base name. */
-    public Path saveGeneratedC(Path source, String content)
+    /** Downloads generated code next to its source, with the same base name and the given extension. */
+    public Path saveOutput(Path source, String content, String extension)
     {
-        Path destination = source != null ? FileManager.outputPathFor(source)
-                : chooseDestination("Guardar codigo C", "Codigo C (*.c)", List.of(Constants.OUTPUT_EXTENSION),
-                        Constants.OUTPUT_EXTENSION);
+        Path destination = source != null ? FileManager.outputPathFor(source, extension)
+                : chooseDestination("Guardar ." + extension, "Codigo (*." + extension + ")", List.of(extension),
+                        extension);
 
         return destination != null && write(destination, content) ? destination : null;
     }

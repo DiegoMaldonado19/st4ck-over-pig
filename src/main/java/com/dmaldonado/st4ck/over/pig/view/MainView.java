@@ -44,6 +44,8 @@ public final class MainView extends BorderPane {
     private final ProcessStackPanel stackPanel = new ProcessStackPanel();
     private final TableView<Quadruple> quadrupleTable = new TableView<>();
     private final TextArea generatedC  = new TextArea();
+    private final TextArea threeAddressCode = new TextArea();
+    private final TextArea assembly    = new TextArea();
     private final TabPane tabs = new TabPane();
 
     // Como campos y no como indices: reordenar las pestanas no puede mandar al
@@ -61,6 +63,7 @@ public final class MainView extends BorderPane {
     private final Button exportFolderButton = new Button("Descargar carpeta");
     private final Button compileButton = new Button("Compilar");
     private final Button exportButton = new Button("Descargar .c");
+    private final Button exportAssemblyButton = new Button("Descargar .asm");
     private final Button exportTreeButton = new Button("Exportar arbol");
 
     private final Label statusLabel = new Label("Listo");
@@ -72,9 +75,13 @@ public final class MainView extends BorderPane {
         buildQuadrupleTable();
         buildTrees();
 
-        generatedC.setEditable(false);
-        generatedC.getStyleClass().add("code-output");
+        for (TextArea output : List.of(generatedC, threeAddressCode, assembly))
+        {
+            output.setEditable(false);
+            output.getStyleClass().add("code-output");
+        }
         exportButton.setDisable(true); // nothing valid has been compiled yet
+        exportAssemblyButton.setDisable(true);
         exportTreeButton.setDisable(true);
 
         statusLabel.setPadding(new Insets(6, 12, 6, 12));
@@ -98,7 +105,7 @@ public final class MainView extends BorderPane {
 
         return new ToolBar(openFolderButton, newButton, newFolderButton, openButton, new Separator(),
                 saveButton, saveAsButton, saveAllButton, exportFolderButton, new Separator(),
-                compileButton, new Separator(), exportButton, exportTreeButton, spacer, fileLabel);
+                compileButton, new Separator(), exportButton, exportAssemblyButton, exportTreeButton, spacer, fileLabel);
     }
 
     /** Folder tree | open files | results, left to right. */
@@ -110,7 +117,9 @@ public final class MainView extends BorderPane {
                 new Tab("Tabla de simbolos", symbolTable),
                 new Tab("Pila de procesos", stackPanel),
                 new Tab("Cuartetas", quadrupleTable),
-                codeTab);
+                new Tab("Codigo 3D", threeAddressCode),
+                codeTab,
+                new Tab("RISC-V", assembly));
 
         SplitPane split = new SplitPane(workspaceTree, editors, tabs);
         split.setDividerPositions(0.16, 0.56);
@@ -266,6 +275,16 @@ public final class MainView extends BorderPane {
         generatedC.setText(cCode);
     }
 
+    public void showThreeAddressCode(String code)
+    {
+        threeAddressCode.setText(code);
+    }
+
+    public void showAssembly(String code)
+    {
+        assembly.setText(code);
+    }
+
     public void showQuadruples(List<Quadruple> quadruples)
     {
         quadrupleTable.setItems(FXCollections.observableArrayList(quadruples));
@@ -298,6 +317,11 @@ public final class MainView extends BorderPane {
 
     public String getGeneratedCText() {
         return generatedC.getText();
+    }
+
+    public String getAssemblyText()
+    {
+        return assembly.getText();
     }
 
     /** The file the user is looking at; null when no file is open. */
@@ -382,5 +406,10 @@ public final class MainView extends BorderPane {
 
     public Button getExportButton() {
         return exportButton;
+    }
+
+    public Button getExportAssemblyButton()
+    {
+        return exportAssemblyButton;
     }
 }

@@ -19,6 +19,9 @@ public final class Constants
     /** La salida del compilador: C compilable con gcc. */
     public static final String OUTPUT_EXTENSION = "c";
 
+    /** The RISC-V translation, for RARS. */
+    public static final String ASSEMBLY_EXTENSION = "asm";
+
     public static final String APP_TITLE = "St4ck Over-Pig";
 
     private Constants()

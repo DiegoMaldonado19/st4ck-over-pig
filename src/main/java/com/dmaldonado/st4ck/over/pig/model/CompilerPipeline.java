@@ -18,6 +18,9 @@ import com.dmaldonado.st4ck.over.pig.model.ast.declaration.Program;
 import com.dmaldonado.st4ck.over.pig.model.codegen.CEmitter;
 import com.dmaldonado.st4ck.over.pig.model.codegen.Quadruple;
 import com.dmaldonado.st4ck.over.pig.model.codegen.QuadrupleGenerator;
+import com.dmaldonado.st4ck.over.pig.model.codegen.RiscVEmitter;
+import com.dmaldonado.st4ck.over.pig.model.codegen.ThreeAddressGenerator;
+import com.dmaldonado.st4ck.over.pig.model.codegen.ThreeAddressPrinter;
 import com.dmaldonado.st4ck.over.pig.model.errors.CompilerError;
 import com.dmaldonado.st4ck.over.pig.model.errors.ErrorManager;
 import com.dmaldonado.st4ck.over.pig.model.errors.ErrorType;
@@ -83,10 +86,12 @@ public class CompilerPipeline
      * @param steps        empty only when the file was never parsed at all.
      * @param quadruples   empty unless the program is valid and has a main.
      * @param cCode        the C translation of the quadruples, or "".
+     * @param threeAddressCode the three address code written by hand, what is still pending, or "".
+     * @param assembly     its RISC-V translation, or "" while the three address code is incomplete.
      */
     public record CompilationResult(Program ast, SymbolTable symbolTable, List<ProcessStep> steps,
                                     List<CompilerError> errors, List<Quadruple> quadruples,
-                                    String cCode)
+                                    String cCode, String threeAddressCode, String assembly)
     {
         /** Only a valid program may be graphed and translated. */
         public boolean isValid()
@@ -138,7 +143,8 @@ public class CompilerPipeline
 
         errorManager.setSource(sourcePath == null ? "" : sourcePath.getFileName().toString());
         report.accept(errorManager);
-        return new CompilationResult(null, new SymbolTable(), List.of(), errorManager.getErrors(), List.of(), "");
+        return new CompilationResult(null, new SymbolTable(), List.of(), errorManager.getErrors(), List.of(), "",
+                "", "");
     }
 
     private CompilationResult compileSource(String source, Path sourcePath)
@@ -156,7 +162,7 @@ public class CompilerPipeline
         if (root.ast() == null)
         {
             return new CompilationResult(null, symbolTable, root.steps(), errorManager.getErrors(),
-                    List.of(), "");
+                    List.of(), "", "", "");
         }
 
         checkClassName(root.ast(), fileName, errorManager);
@@ -170,7 +176,7 @@ public class CompilerPipeline
         if (errorManager.hasErrorsOf(ErrorType.LEXICAL))
         {
             return new CompilationResult(root.ast(), symbolTable, root.steps(), errorManager.getErrors(),
-                    List.of(), "");
+                    List.of(), "", "", "");
         }
 
         // Dos pasadas sobre TODOS los archivos: primero se registra lo que cada
@@ -214,8 +220,10 @@ public class CompilerPipeline
         }
         errorManager.setSource(fileName);
 
-        List<Quadruple> quadruples = List.of();
-        String          cCode      = "";
+        List<Quadruple> quadruples       = List.of();
+        String          cCode            = "";
+        String          threeAddressCode = "";
+        String          assembly         = "";
 
         // Solo un programa sin errores se traduce, y solo un .pig tiene MAIOR
         // que ejecutar: un .y o un .z se analiza y ahi termina.
@@ -224,9 +232,22 @@ public class CompilerPipeline
             quadruples = new QuadrupleGenerator().generate(units.stream().map(Unit::ast).toList(),
                                                            symbolTable.getGlobalSize());
             cCode      = CEmitter.emit(quadruples);
+
+            // The new translation still grows phase by phase: what it lacks is shown, not failed.
+            try
+            {
+                List<Quadruple> code = new ThreeAddressGenerator().generate(root.ast());
+
+                threeAddressCode = ThreeAddressPrinter.print(code);
+                assembly         = new RiscVEmitter().emit(code);
+            }
+            catch (UnsupportedOperationException pending)
+            {
+                threeAddressCode = "// " + pending.getMessage();
+            }
         }
         return new CompilationResult(root.ast(), symbolTable, root.steps(), errorManager.getErrors(),
-                quadruples, cCode);
+                quadruples, cCode, threeAddressCode, assembly);
     }
 
     /* =================================================================
