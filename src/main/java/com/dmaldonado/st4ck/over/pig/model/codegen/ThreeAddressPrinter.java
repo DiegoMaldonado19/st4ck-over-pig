@@ -33,7 +33,7 @@ public final class ThreeAddressPrinter
         return text.toString();
     }
 
-    private static String line(Quadruple q)
+    static String line(Quadruple q)
     {
         String op = q.op();
 
