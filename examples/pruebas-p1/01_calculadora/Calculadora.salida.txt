@@ -1,0 +1,176 @@
+Ingresa tu nombre:
+Bienvenido Diego
+Iniciando en 3
+Iniciando en 2
+Iniciando en 1
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Ingresa el primer numero:
+Ingresa el segundo numero:
+Resultado: 0.0
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Ingresa el primer numero:
+Ingresa el segundo numero:
+Resultado: 6.0
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Ingresa la base:
+Ingresa el exponente (entero):
+2.5 ^ 10 = 9536.7431640625
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Ingresa hasta 10 numeros (0 para terminar):
+Cantidad: 3
+Suma: 14.5
+Maximo: 7.0
+Promedio: 4.833333333333333
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+--- Historial (3 resultados) ---
+#0: 0.0
+#1: 6.0
+#2: 9536.7431640625
+Promedio del historial: 3180.9143880208335
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Ingresa n para calcular n!:
+5! = 120
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Cuantos terminos de Fibonacci? (1 a 20)
+F(0) = 0
+F(1) = 1
+F(2) = 1
+F(3) = 2
+F(4) = 3
+F(5) = 5
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Ingresa un entero:
+7 es primo
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Ingresa el primer entero:
+Ingresa el segundo entero:
+MCD(12, 18) = 6
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Ingresa un entero:
+Digitos: 3
+Suma de impares hasta 123: 1024
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Opcion invalida, intenta de nuevo
+
+=========== CALCULADORA ZETARIANA ===========
+ 1. Sumar             2. Restar
+ 3. Multiplicar       4. Dividir
+ 5. Potencia          6. Factorial
+ 7. Serie Fibonacci   8. Es primo?
+ 9. MCD              10. Lista (suma/max)
+11. Historial        12. Digitos y suma de impares
+ 0. Salir
+=============================================
+Elige una opcion:
+Saliendo de la calculadora...
+Hasta luego, Diego

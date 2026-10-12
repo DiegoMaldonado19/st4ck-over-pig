@@ -1,0 +1,179 @@
+=== LISTA DOBLEMENTE ENLAZADA ===
+Lista inicial (adelante):
+[10 <-> 20 <-> 30 <-> 40 <-> 50]
+Lista inicial (atras):
+[50 <-> 40 <-> 30 <-> 20 <-> 10]
+Otra lista:
+[7 <-> 8 <-> 9]
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Valor:
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Valor:
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Posicion:
+Valor:
+Insertado en la posicion 2
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Posicion:
+Valor:
+Posicion invalida
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Valor a buscar:
+Encontrado en el indice 2
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Valor a buscar:
+No encontrado
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Adelante:
+[5 <-> 10 <-> 42 <-> 20 <-> 30 <-> 40 <-> 50 <-> 99]
+Atras:
+[99 <-> 50 <-> 40 <-> 30 <-> 20 <-> 42 <-> 10 <-> 5]
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Lista invertida
+[99 <-> 50 <-> 40 <-> 30 <-> 20 <-> 42 <-> 10 <-> 5]
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Lista ordenada
+[5 <-> 10 <-> 20 <-> 30 <-> 40 <-> 42 <-> 50 <-> 99]
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Tamano: 8 (par)
+Suma: 296
+Maximo: 99
+Primero: 5 | Ultimo: 99
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Elemento eliminado del inicio
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Elemento eliminado del final
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Posicion:
+Eliminado el elemento de la posicion 1
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Valor a eliminar:
+Valor 30 eliminado
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Valor a eliminar:
+El valor no existe
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Adelante:
+[10 <-> 40 <-> 42 <-> 50]
+Atras:
+[50 <-> 42 <-> 40 <-> 10]
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Lista vaciada
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+La lista esta vacia
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Lista vacia
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Opcion invalida
+
+1. Insertar al inicio    2. Insertar al final    3. Insertar en posicion
+4. Eliminar inicio       5. Eliminar final       6. Eliminar posicion
+7. Eliminar por valor    8. Buscar valor         9. Invertir
+10. Ordenar              11. Imprimir            12. Estadisticas
+13. Vaciar               0. Salir
+Saliendo...
+===== REGISTRO DE OPERACIONES =====
+Operaciones totales: 8
+Inserciones: 3
+Eliminaciones: 4
+Busquedas exitosas: 1

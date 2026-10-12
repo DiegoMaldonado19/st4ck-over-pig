@@ -1,0 +1,230 @@
+=== LABERINTO DE TESOROS ===
+Leyenda: P jugador, # pared, $ tesoro, X trampa, * gema
+
+
+=== RONDA 
+ ronda 
+ ===
+Ingresa tu nombre:
+Celdas accesibles desde el inicio: 29
+Tesoros en el tablero: 4
+Camino libre a la derecha: 6
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # P . . . . . $ # 
+2 # . # # # . . * # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 0 | Vidas: 3 | Movimientos: 0
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Avanzas a (1,2)
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . P . . . . $ # 
+2 # . # # # . . * # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 0 | Vidas: 3 | Movimientos: 1
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Avanzas a (1,3)
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . P . . . $ # 
+2 # . # # # . . * # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 0 | Vidas: 3 | Movimientos: 2
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Avanzas a (1,4)
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . P . . $ # 
+2 # . # # # . . * # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 0 | Vidas: 3 | Movimientos: 3
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Avanzas a (1,5)
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . P . $ # 
+2 # . # # # . . * # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 0 | Vidas: 3 | Movimientos: 4
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Avanzas a (1,6)
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . P $ # 
+2 # . # # # . . * # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 0 | Vidas: 3 | Movimientos: 5
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Encontraste un tesoro! Quedan 3
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . P # 
+2 # . # # # . . * # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 60 | Vidas: 3 | Movimientos: 6
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Gema bonus!
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . . # 
+2 # . # # # . . P # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 70 | Vidas: 3 | Movimientos: 7
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Avanzas a (3,7)
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . . # 
+2 # . # # # . . . # 
+3 # $ . X . X . P # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 70 | Vidas: 3 | Movimientos: 8
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Avanzas a (4,7)
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . . # 
+2 # . # # # . . . # 
+3 # $ . X . X . . # 
+4 # . . . # # # P # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 70 | Vidas: 3 | Movimientos: 9
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Encontraste un tesoro! Quedan 2
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . . # 
+2 # . # # # . . . # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . P # 
+6 # # # # # # # # # 
+Jugador: Ana (P) | Puntos: 130 | Vidas: 3 | Movimientos: 10
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+--- Fin de la ronda ---
+Jugador: Ana (P) | Puntos: 130 | Vidas: 3 | Movimientos: 10
+Veredicto: Mision cumplida
+Calificacion: A - Explorador experto
+
+
+=== RONDA 
+ ronda 
+ ===
+Ingresa tu nombre:
+Celdas accesibles desde el inicio: 29
+Tesoros en el tablero: 4
+Camino libre a la derecha: 6
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # P . . . . . $ # 
+2 # . # # # . . * # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Beto (P) | Puntos: 0 | Vidas: 3 | Movimientos: 0
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Avanzas a (2,1)
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . $ # 
+2 # P # # # . . * # 
+3 # $ . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Beto (P) | Puntos: 0 | Vidas: 3 | Movimientos: 1
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Encontraste un tesoro! Quedan 3
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . $ # 
+2 # . # # # . . * # 
+3 # P . X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Beto (P) | Puntos: 60 | Vidas: 3 | Movimientos: 2
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Avanzas a (3,2)
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . $ # 
+2 # . # # # . . * # 
+3 # . P X . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Beto (P) | Puntos: 60 | Vidas: 3 | Movimientos: 3
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Pisaste una trampa! Vidas: 2
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . $ # 
+2 # . # # # . . * # 
+3 # . . P . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Beto (P) | Puntos: 40 | Vidas: 2 | Movimientos: 4
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Avanzas a (3,2)
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . $ # 
+2 # . # # # . . * # 
+3 # . P . . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Beto (P) | Puntos: 40 | Vidas: 2 | Movimientos: 5
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+Choque contra una pared
+  0 1 2 3 4 5 6 7 8 
+0 # # # # # # # # # 
+1 # . . . . . . $ # 
+2 # . # # # . . * # 
+3 # . P . . X . . # 
+4 # . . . # # # . # 
+5 # . X . $ . . $ # 
+6 # # # # # # # # # 
+Jugador: Beto (P) | Puntos: 40 | Vidas: 2 | Movimientos: 5
+Mover (1=arriba 2=abajo 3=izq 4=der, 0=salir):
+--- Fin de la ronda ---
+Jugador: Beto (P) | Puntos: 40 | Vidas: 2 | Movimientos: 5
+Veredicto: Mision fallida
+Calificacion: B - Aprendiz
+===== RESUMEN DE MISION =====
+Ultimo jugador: Beto
+Partidas jugadas: 2
+Partida 1: 130 puntos
+Partida 2: 40 puntos
+Mejor puntaje: 130

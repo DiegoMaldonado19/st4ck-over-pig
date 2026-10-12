@@ -1,0 +1,16 @@
+Hola comandante!
+Ingresa tu nombre por favor
+BienvenidoEstudiante X
+Ingresa tu edad
+Tu poder es: 120
+La puerta esta cifrada?verum
+Abajo el imperio porcino 100 .. no tenemos miedo
+Capitan Esparragos clon / 8.0
+Valeria vive en Avenida Central
+se cumple la condicion
+se cumple la condicion
+se cumple la primera
+0
+1
+2
+4

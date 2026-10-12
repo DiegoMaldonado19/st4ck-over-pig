@@ -1,0 +1,19 @@
+Poder calculado: 30
+Quien anda ahi?
+Salve, humano
+Ana tiene 34
+Ana ahora tiene 35
+Atacando con fuerza: 30
+Iteracion: 1
+Iteracion: 2
+Iteracion: 4
+Iteracion: 5
+2
+2
+5! = 120
+fib(10) = 55
+Rango: teniente
+Gravedad: 9.81, inicial: a, bloqueado: falsus
+Hola y Adios
+Ingresa tu edad
+Edad: 33

@@ -1,0 +1,299 @@
+==============================
+     AHORCADO ZETARIANO       
+==============================
+Ingresa tu nombre:
+Elige una palabra (0 a 4):
+Pista: El enemigo de la resistencia
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========
+Errores: 0/6 | Intentos restantes: 6
+Letras usadas: 
+_ _ _ _ _ 
+Ingresa una letra minuscula:
+Bien! La letra c esta en la palabra
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========
+Errores: 0/6 | Intentos restantes: 6
+Letras usadas: c 
+c _ _ _ _ 
+Ingresa una letra minuscula:
+Bien! La letra e esta en la palabra
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========
+Errores: 0/6 | Intentos restantes: 6
+Letras usadas: c e 
+c e _ _ _ 
+Ingresa una letra minuscula:
+Bien! La letra r esta en la palabra
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========
+Errores: 0/6 | Intentos restantes: 6
+Letras usadas: c e r 
+c e r _ _ 
+Ingresa una letra minuscula:
+Bien! La letra d esta en la palabra
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========
+Errores: 0/6 | Intentos restantes: 6
+Letras usadas: c e r d 
+c e r d _ 
+Ingresa una letra minuscula:
+Bien! La letra o esta en la palabra
+GANASTE! La palabra era:
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========
+c e r d o 
+Puntaje de la partida: 100
+----- MARCADOR -----
+Partidas: 1 | Ganadas: 1 | Perdidas: 0
+Racha actual: 1 | Mejor racha: 1
+Victorias: 100.0%
+Jugar otra vez? (1 = si, 0 = no)
+Elige una palabra (0 a 4):
+Pista: Lenguaje con nombre de serpiente
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========
+Errores: 0/6 | Intentos restantes: 6
+Letras usadas: 
+_ _ _ _ _ _ 
+Ingresa una letra minuscula:
+Fallaste! La letra x no esta
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========
+Errores: 1/6 | Intentos restantes: 5
+Letras usadas: x 
+_ _ _ _ _ _ 
+Ingresa una letra minuscula:
+Bien! La letra p esta en la palabra
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========
+Errores: 1/6 | Intentos restantes: 5
+Letras usadas: x p 
+p _ _ _ _ _ 
+Ingresa una letra minuscula:
+Bien! La letra y esta en la palabra
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========
+Errores: 1/6 | Intentos restantes: 5
+Letras usadas: x p y 
+p y _ _ _ _ 
+Ingresa una letra minuscula:
+Ya usaste la letra p
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========
+Errores: 1/6 | Intentos restantes: 5
+Letras usadas: x p y 
+p y _ _ _ _ 
+Ingresa una letra minuscula:
+Entrada invalida, solo letras de la a a la z
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========
+Errores: 1/6 | Intentos restantes: 5
+Letras usadas: x p y 
+p y _ _ _ _ 
+Ingresa una letra minuscula:
+Bien! La letra t esta en la palabra
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========
+Errores: 1/6 | Intentos restantes: 5
+Letras usadas: x p y t 
+p y t _ _ _ 
+Ingresa una letra minuscula:
+Bien! La letra h esta en la palabra
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========
+Errores: 1/6 | Intentos restantes: 5
+Letras usadas: x p y t h 
+p y t h _ _ 
+Ingresa una letra minuscula:
+Bien! La letra o esta en la palabra
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========
+Errores: 1/6 | Intentos restantes: 5
+Letras usadas: x p y t h o 
+p y t h o _ 
+Ingresa una letra minuscula:
+Bien! La letra n esta en la palabra
+GANASTE! La palabra era:
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========
+p y t h o n 
+Puntaje de la partida: 55
+----- MARCADOR -----
+Partidas: 2 | Ganadas: 2 | Perdidas: 0
+Racha actual: 2 | Mejor racha: 2
+Victorias: 100.0%
+Jugar otra vez? (1 = si, 0 = no)
+Elige una palabra (0 a 4):
+Indice fuera de rango, se usa la palabra 0
+Pista: Lenguaje con nombre de serpiente
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========
+Errores: 0/6 | Intentos restantes: 6
+Letras usadas: 
+_ _ _ _ _ _ 
+Ingresa una letra minuscula:
+Fallaste! La letra b no esta
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========
+Errores: 1/6 | Intentos restantes: 5
+Letras usadas: b 
+_ _ _ _ _ _ 
+Ingresa una letra minuscula:
+Fallaste! La letra c no esta
+  +---+
+  |   |
+  O   |
+  |   |
+      |
+      |
+=========
+Errores: 2/6 | Intentos restantes: 4
+Letras usadas: b c 
+_ _ _ _ _ _ 
+Ingresa una letra minuscula:
+Fallaste! La letra d no esta
+  +---+
+  |   |
+  O   |
+ -|   |
+      |
+      |
+=========
+Errores: 3/6 | Intentos restantes: 3
+Letras usadas: b c d 
+_ _ _ _ _ _ 
+Ingresa una letra minuscula:
+Fallaste! La letra f no esta
+  +---+
+  |   |
+  O   |
+ -|-  |
+      |
+      |
+=========
+Errores: 4/6 | Intentos restantes: 2
+Letras usadas: b c d f 
+_ _ _ _ _ _ 
+Ingresa una letra minuscula:
+Fallaste! La letra g no esta
+  +---+
+  |   |
+  O   |
+ -|-  |
+ ^    |
+      |
+=========
+Errores: 5/6 | Intentos restantes: 1
+Letras usadas: b c d f g 
+_ _ _ _ _ _ 
+Ingresa una letra minuscula:
+Fallaste! La letra i no esta
+PERDISTE. La palabra era:
+  +---+
+  |   |
+  O   |
+ -|-  |
+ ^ ^  |
+      |
+=========
+p y t h o n 
+Puntaje de la partida: 0
+----- MARCADOR -----
+Partidas: 3 | Ganadas: 2 | Perdidas: 1
+Racha actual: 0 | Mejor racha: 2
+Victorias: 66.66666666666667%
+Jugar otra vez? (1 = si, 0 = no)
+Puntaje total: 155
+Titulo obtenido: Aprendiz
+Gracias por jugar, Ana

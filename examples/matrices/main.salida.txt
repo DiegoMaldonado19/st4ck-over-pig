@@ -1,0 +1,8 @@
+matriz[1][2] = 6
+matriz[0][1] = 40
+cb
+suma Y? = 21
+100
+010
+001
+uno otro
