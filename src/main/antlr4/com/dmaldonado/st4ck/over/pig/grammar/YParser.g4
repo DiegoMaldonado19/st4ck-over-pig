@@ -154,8 +154,12 @@ instruccionSi
 sinoCondicional : SINO PAR_IZQ expresion PAR_DER ENTONCES bloque ;
 
 // Un caso sin cuerpo cae al siguiente, como en C.
+// The cases go between braces, or after ':' and indented like any other Y? block.
 instruccionElegir
-    : ELEGIR PAR_IZQ expresion PAR_DER LLAVE_IZQ INDENT? casoElegir* casoSiempre? DEDENT? LLAVE_DER
+    : ELEGIR PAR_IZQ expresion PAR_DER
+      ( LLAVE_IZQ INDENT? casoElegir* casoSiempre? DEDENT? LLAVE_DER
+      | DOS_PUNTOS INDENT casoElegir* casoSiempre? DEDENT
+      )
     ;
 
 casoElegir  : CASO expresion DOS_PUNTOS bloque? ;
