@@ -22,6 +22,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.expression.IncrementExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.LiteralExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.MemberAccessExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.MethodCallExpression;
+import com.dmaldonado.st4ck.over.pig.model.ast.expression.NewArrayExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.NewExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.ReadExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.TernaryExpression;
@@ -246,7 +247,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     {
         VariableSymbol symbol = new VariableSymbol(node.getName(), type, node.getTypeText(),
                 SymbolCategory.VARIABLE, symbolTable.getCurrentScopeName(),
-                node.getInitialValue() != null, structName, false, node.getLine(), node.getColumn());
+                node.getInitialValue() != null, structName, 0, node.getLine(), node.getColumn());
 
         symbolTable.declare(symbol);
         node.setSymbol(symbol);
@@ -294,7 +295,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
 
         for (Expression size : node.getDimensions())
         {
-            dimensions.add(dimension(node, size));
+            dimensions.add(dimension(node, node.getName(), size));
         }
         validateDimensions(node, dimensions);
 
@@ -315,7 +316,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             Expression value     = node.getInitialValues().get(0);
             DataType   valueType = checkValue(value, elementType, elementStructName, true);
 
-            checkArrayShape(value, Collections.nCopies(node.getRank(), -1));
+            checkArrayShape(value, node.getRank());
             if (!fits(true, elementType, elementStructName, valueType, value.getStructName()))
             {
                 error(value, "Un arreglo de '" + describe(valueType, value.getStructName())
@@ -345,51 +346,38 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         return elementType;
     }
 
-    /** One dimension: it has to be numerus. Its value when it is constant, -1 otherwise. */
-    private int dimension(ArrayDeclaration node, Expression size)
+    /** One dimension of an array declared or created with new: numerus. Its value when constant, -1 otherwise. */
+    private int dimension(AstNode node, String name, Expression size)
     {
         DataType sizeType = size.accept(this);
 
         if (sizeType != DataType.NUMERUS && sizeType != DataType.ERROR)
         {
-            error(node, "El tamano del arreglo '" + node.getName()
+            error(node, "El tamano del arreglo '" + name
                     + "' debe ser '" + describe(DataType.NUMERUS, null) + "', se recibio '"
-                    + describe(sizeType, null) + "'.", node.getName());
+                    + describe(sizeType, null) + "'.", name);
         }
 
         Integer declared = extractInteger(size);
 
         if (declared != null && declared < 0)
         {
-            error(node, "El tamano del arreglo '" + node.getName() + "' no puede ser negativo.",
-                    node.getName());
+            error(node, "El tamano del arreglo '" + name + "' no puede ser negativo.", name);
             return -1;
         }
         return declared == null ? -1 : declared;
     }
 
     /**
-     * A matrix is flattened row by row, so where m[i][j] lives depends on every
-     * dimension but the first: those have to be known when compiling.
+     * The sizes may be variables, even the inner ones: an array keeps them in the heap and
+     * m[i][j] reads its row length there. Only their number has to match the declaration.
      */
     private void validateDimensions(ArrayDeclaration node, List<Integer> dimensions)
     {
-        String name = node.getName();
-
-        if (dimensions.isEmpty() && node.getRank() > 1)
+        if (!dimensions.isEmpty() && dimensions.size() != node.getRank())
         {
-            error(node, "La matriz '" + name + "' debe crearse al declararla, con 'new' o con sus "
-                    + "valores: de sus dimensiones depende donde vive cada posicion.", name);
-        }
-        else if (!dimensions.isEmpty() && dimensions.size() != node.getRank())
-        {
-            error(node, "'" + name + "' se declara con " + node.getRank() + " dimension(es) y se "
-                    + "crea con " + dimensions.size() + ".", name);
-        }
-        else if (dimensions.size() > 1 && dimensions.subList(1, dimensions.size()).contains(-1))
-        {
-            error(node, "Las dimensiones internas de la matriz '" + name + "' deben ser constantes: "
-                    + "de ellas depende donde vive cada posicion.", name);
+            error(node, "'" + node.getName() + "' se declara con " + node.getRank() + " dimension(es) y se "
+                    + "crea con " + dimensions.size() + ".", node.getName());
         }
     }
 
@@ -528,7 +516,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         if (node.getOwnerClass() != null)
         {
             symbolTable.declare(new VariableSymbol("this", DataType.ESTRUCTURA, node.getOwnerClass(),
-                    SymbolCategory.PARAMETER, node.getName(), true, node.getOwnerClass(), false,
+                    SymbolCategory.PARAMETER, node.getName(), true, node.getOwnerClass(), 0,
                     node.getLine(), node.getColumn()));
         }
 
@@ -618,10 +606,11 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         if (parameter.isArray())
         {
             return new ArraySymbol(parameter.getName(), parameter.getType(), parameter.getTypeText(),
-                    functionName, List.of(-1), 0, structName, parameter.getLine(), parameter.getColumn());
+                    functionName, Collections.nCopies(parameter.getRank(), -1), 0, structName,
+                    parameter.getLine(), parameter.getColumn());
         }
         return new VariableSymbol(parameter.getName(), parameter.getType(), parameter.getTypeText(),
-                SymbolCategory.PARAMETER, functionName, true, structName, false,
+                SymbolCategory.PARAMETER, functionName, true, structName, 0,
                 parameter.getLine(), parameter.getColumn());
     }
 
@@ -666,7 +655,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
 
         if (wholeArray)
         {
-            checkArrayShape(node.getValue(), dimensionsOf(node.getTarget()));
+            checkArrayShape(node.getValue(), dimensionsOf(node.getTarget()).size());
 
             // Its declared sizes no longer say how long it is.
             if (node.getTarget() instanceof IdentifierExpression identifier
@@ -1158,12 +1147,30 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         return elementType;
     }
 
-    /** Sizes of an array value: those of its declaration, or one unknown for a parameter or attribute. */
-    private static List<Integer> dimensionsOf(Expression array)
+    /**
+     * Sizes of an array value, -1 where they are not constant: those of its declaration or of
+     * its new. An attribute only knows how many it has.
+     */
+    private List<Integer> dimensionsOf(Expression array)
     {
         if (array instanceof IdentifierExpression identifier && identifier.getSymbol() instanceof ArraySymbol symbol)
         {
             return symbol.getDimensions();
+        }
+
+        VariableSymbol attribute = array instanceof IdentifierExpression identifier
+                                   && identifier.getSymbol() instanceof VariableSymbol variable ? variable
+                                   : array instanceof MemberAccessExpression member ? attributeOf(member) : null;
+
+        if (attribute != null && attribute.isArray())
+        {
+            return Collections.nCopies(attribute.getRank(), -1);
+        }
+        if (array instanceof NewArrayExpression created)
+        {
+            return created.getDimensions().stream()
+                    .map(size -> Objects.requireNonNullElse(extractInteger(size), -1))
+                    .toList();
         }
         return List.of(-1);
     }
@@ -1305,7 +1312,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
 
             if (parameter.isArray())
             {
-                checkArrayShape(argument, List.of(-1));
+                checkArrayShape(argument, parameter.getRank());
             }
 
             if (!fits(parameter.isArray(), parameter.getType(), parameter.getStructName(), argumentType,
@@ -1389,7 +1396,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
                 }
             }
             else if (type != DataType.ERROR
-                    && (isArrayValue(argument) != parameter.isArray() && type != DataType.NULO
+                    && (rankOf(argument) != parameter.getRank() && type != DataType.NULO
                         || !fits(parameter.isArray(), parameter.getType(), parameter.getStructName(), type,
                                  argument.getStructName())))
             {
@@ -1407,7 +1414,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             VariableSymbol mine   = first.getParameters().get(i);
             VariableSymbol theirs = second.getParameters().get(i);
 
-            if (mine.isArray() != theirs.isArray()
+            if (mine.getRank() != theirs.getRank()
                     || !fits(mine.isArray(), theirs.getType(), theirs.getStructName(), mine.getType(),
                              mine.getStructName()))
             {
@@ -1481,6 +1488,30 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         node.setConstructor(constructor);
         node.setStructName(type.getName());
         return typeCheck(node, DataType.ESTRUCTURA);
+    }
+
+    /** new int[f][c]: every size a numerus, and an element type that exists. */
+    @Override
+    public DataType visitNewArrayExpression(NewArrayExpression node)
+    {
+        for (Expression size : node.getDimensions())
+        {
+            dimension(node, node.getLabel(), size);
+        }
+        checkTypeName(node, node.getTypeText());
+
+        if (node.getElementType() == DataType.ESTRUCTURA)
+        {
+            StructSymbol struct = symbolTable.lookupStruct(node.getTypeText());
+
+            if (struct == null)
+            {
+                error(node, "El tipo '" + node.getTypeText() + "' no existe.", node.getTypeText());
+                return typeCheck(node, DataType.ERROR);
+            }
+            node.setStructName(struct.getName());
+        }
+        return typeCheck(node, node.getElementType());
     }
 
     /** Written by the user, 'this' belongs to Proyecto 2; the builder's own is always valid. */
@@ -1613,11 +1644,9 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         {
             checkTypeName(field, field.getTypeText());
 
-            // A matrix attribute is reported once, by validateStructFieldTypes: its uses stay quiet.
-            VariableSymbol attribute = new VariableSymbol(field.getName(),
-                    field.getRank() > 1 ? DataType.ERROR : field.getType(),
+            VariableSymbol attribute = new VariableSymbol(field.getName(), field.getType(),
                     field.getTypeText(), SymbolCategory.ATTRIBUTE, node.getName(), false,
-                    structNameOf(field.getType(), field.getTypeText()), field.isArray(),
+                    structNameOf(field.getType(), field.getTypeText()), field.getRank(),
                     field.getLine(), field.getColumn());
 
             if (!struct.addAttribute(attribute))
@@ -1642,12 +1671,6 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
                 error(field, "El tipo '" + field.getTypeText() + "' del atributo '"
                         + field.getName() + "' no existe.", field.getTypeText());
             }
-            // Its cell m[i][j] would depend on sizes only known inside the object.
-            if (field.getRank() > 1)
-            {
-                error(field, "El atributo '" + field.getName() + "' es una matriz: un atributo solo puede ser "
-                        + "un arreglo de una dimension. Declare la matriz dentro del metodo.", field.getName());
-            }
             // Y? writes the size of an array field: it is reserved with the structure.
             if (language == Language.Y && field.isArray() && field.getSize() < 1)
             {
@@ -1665,7 +1688,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         {
             parameters.add(new VariableSymbol(parameter.getName(), parameter.getType(),
                     parameter.getTypeText(), SymbolCategory.PARAMETER, node.getName(), true,
-                    structNameOf(parameter.getType(), parameter.getTypeText()), parameter.isArray(),
+                    structNameOf(parameter.getType(), parameter.getTypeText()), parameter.getRank(),
                     parameter.getLine(), parameter.getColumn()));
         }
 
@@ -1914,12 +1937,25 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         }
         if (expression instanceof MemberAccessExpression member)
         {
-            StructSymbol   struct    = symbolTable.lookupStruct(member.getOwner().getStructName());
-            VariableSymbol attribute = struct == null ? null : struct.getAttribute(member.getMemberName());
+            VariableSymbol attribute = attributeOf(member);
 
             return attribute != null && attribute.isArray();
         }
-        return false;
+        return expression instanceof NewArrayExpression;
+    }
+
+    /** The attribute a member access names, once its owner was visited; null when there is none. */
+    private VariableSymbol attributeOf(MemberAccessExpression member)
+    {
+        StructSymbol struct = symbolTable.lookupStruct(member.getOwner().getStructName());
+
+        return struct == null ? null : struct.getAttribute(member.getMemberName());
+    }
+
+    /** Dimensions of a whole array; 0 for any other value. */
+    private int rankOf(Expression expression)
+    {
+        return isArrayValue(expression) ? dimensionsOf(expression).size() : 0;
     }
 
     /** How an expression is named in a message: the variable or attribute, when there is one. */
@@ -2004,27 +2040,17 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     }
 
     /**
-     * m = w and f(m): the cells of a matrix are computed from its declared row
-     * sizes, so a whole array only goes where one of the same rank and rows goes.
+     * m = w and f(m): a whole array only goes where one of the same rank goes.
+     * Its sizes travel with it, in the heap, so its rows may be of any length.
      */
-    private void checkArrayShape(Expression value, List<Integer> expected)
+    private void checkArrayShape(Expression value, int expectedRank)
     {
-        if (!isArrayValue(value))
-        {
-            return;
-        }
+        int rank = rankOf(value);
 
-        List<Integer> actual = dimensionsOf(value);
-
-        if (actual.size() != expected.size())
+        if (rank > 0 && rank != expectedRank)
         {
-            error(value, "El arreglo '" + nameOf(value) + "' tiene " + actual.size() + " dimension(es) y aqui "
-                    + "se espera uno de " + expected.size() + ".", nameOf(value));
-        }
-        else if (!actual.subList(1, actual.size()).equals(expected.subList(1, expected.size())))
-        {
-            error(value, "Las filas de '" + nameOf(value) + "' no tienen el tamano que aqui se espera: "
-                    + "de el depende donde vive cada posicion.", nameOf(value));
+            error(value, "El arreglo '" + nameOf(value) + "' tiene " + rank + " dimension(es) y aqui "
+                    + "se espera uno de " + expectedRank + ".", nameOf(value));
         }
     }
 

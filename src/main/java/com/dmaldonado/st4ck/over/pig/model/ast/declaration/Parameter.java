@@ -8,8 +8,9 @@ import java.util.List;
 /**
  * esto fuerza : numerus, inside a function signature.
  *
- * array marks the Y? form "[] entero miArray": the function receives the
- * address of the caller's array, never a copy. structMarker is the Y? form
+ * rank counts the dimensions of an array parameter, 1 for the Y? form
+ * "[] entero miArray" and 2 for a Zetariano "int[][] m": the function receives
+ * the address of the caller's array, never a copy. structMarker is the Y? form
  * "{} Persona p", which only a structure may carry.
  */
 public class Parameter extends AstNode
@@ -17,22 +18,27 @@ public class Parameter extends AstNode
     private final String   name;
     private final String   typeText;
     private final DataType type;
-    private final boolean  array;
+    private final int      rank;
     private final boolean  structMarker;
 
-    public Parameter(String name, String typeText, boolean array, boolean structMarker, int line, int column)
+    public Parameter(String name, String typeText, int rank, boolean structMarker, int line, int column)
     {
         super(line, column);
         this.name         = name;
         this.typeText     = typeText;
         this.type         = DataType.fromText(typeText);
-        this.array        = array;
+        this.rank         = rank;
         this.structMarker = structMarker;
     }
 
     public boolean isArray()
     {
-        return array;
+        return rank > 0;
+    }
+
+    public int getRank()
+    {
+        return rank;
     }
 
     public boolean hasStructMarker()
@@ -64,7 +70,7 @@ public class Parameter extends AstNode
     @Override
     public String getLabel()
     {
-        return "param " + name + " : " + (array ? "[] " : "") + typeText;
+        return "param " + name + " : " + (isArray() ? "[]".repeat(rank) + " " : "") + typeText;
     }
 
     @Override

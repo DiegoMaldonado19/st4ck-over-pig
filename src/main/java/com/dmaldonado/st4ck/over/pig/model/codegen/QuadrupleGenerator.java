@@ -22,6 +22,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.expression.IncrementExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.LiteralExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.MemberAccessExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.MethodCallExpression;
+import com.dmaldonado.st4ck.over.pig.model.ast.expression.NewArrayExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.NewExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.ReadExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.TernaryExpression;
@@ -42,7 +43,6 @@ import com.dmaldonado.st4ck.over.pig.model.ast.statement.PrintStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.ReturnStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.SwitchStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.WhileStatement;
-import com.dmaldonado.st4ck.over.pig.model.symbols.ArraySymbol;
 import com.dmaldonado.st4ck.over.pig.model.symbols.FunctionSymbol;
 import com.dmaldonado.st4ck.over.pig.model.symbols.Symbol;
 import com.dmaldonado.st4ck.over.pig.model.symbols.SymbolCategory;
@@ -270,17 +270,7 @@ public class QuadrupleGenerator implements AstVisitor<String>
         List<Expression> values        = node.getFlatValues();
         String           elementStruct = node.getElementType() == DataType.ESTRUCTURA && values.isEmpty()
                                          && !classes.contains(node.getTypeText()) ? node.getTypeText() : null;
-        String           size          = node.getDimensions().get(0).accept(this);
-
-        for (int k = 1; k < node.getDimensions().size(); k++)
-        {
-            String total = newTemporary();
-
-            emit("*", size, node.getDimensions().get(k).accept(this), total);
-            size = total;
-        }
-
-        String pointer = allocateArray(size, elementStruct, new HashSet<>());
+        String           pointer       = allocateArray(sizesOf(node.getDimensions()), elementStruct, new HashSet<>());
 
         store(slotOf(node.getSymbol()), pointer);
 
@@ -831,6 +821,16 @@ public class QuadrupleGenerator implements AstVisitor<String>
         return pointer;
     }
 
+    /** new int[f][c] as a value: the same block a declaration reserves. */
+    @Override
+    public String visitNewArrayExpression(NewArrayExpression node)
+    {
+        String elementStruct = node.getElementType() == DataType.ESTRUCTURA && !classes.contains(node.getTypeText())
+                               ? node.getTypeText() : null;
+
+        return allocateArray(sizesOf(node.getDimensions()), elementStruct, new HashSet<>());
+    }
+
     @Override
     public String visitThisExpression(ThisExpression node)
     {
@@ -887,7 +887,7 @@ public class QuadrupleGenerator implements AstVisitor<String>
                 && typeName.getSymbol() == null)
         {
             String element = field.getType() == DataType.ESTRUCTURA ? field.getTypeText() : null;
-            return allocateArray(access.getIndex().accept(this), element, new HashSet<>());
+            return allocateArray(List.of(access.getIndex().accept(this)), element, new HashSet<>());
         }
         return value.accept(this);
     }
@@ -935,8 +935,9 @@ public class QuadrupleGenerator implements AstVisitor<String>
 
     /**
      * m[i][j] is ONE cell of the flattened matrix: m + i * columns + j, the
-     * strides taken from the declared dimensions. The runtime checks the cell
-     * against the length the array carries, which also stops a null array.
+     * strides read from the sizes the array carries ahead of its cells, so they
+     * may be variables. A vector is checked against its length, which also
+     * stops a null array; a matrix, each index against its own dimension.
      */
     private Location element(ArrayAccessExpression access)
     {
@@ -949,28 +950,37 @@ public class QuadrupleGenerator implements AstVisitor<String>
             base = inner.getArray();
         }
 
-        List<Integer> dimensions = base instanceof IdentifierExpression identifier
-                                   && identifier.getSymbol() instanceof ArraySymbol array
-                                   ? array.getDimensions() : List.of(-1);
-        String        pointer    = base.accept(this);
-        String        index      = indices.get(0).accept(this);
+        int    rank    = indices.size();
+        String pointer = base.accept(this);
+        String index   = indices.get(0).accept(this);
 
-        for (int k = 1; k < indices.size(); k++)
+        if (rank == 1)
         {
+            emit("checkIndex", pointer, index, "");
+        }
+        else
+        {
+            // The header is read through the pointer: a null matrix must stop before.
+            emit("checkNull", pointer, "", "");
+            emit("checkBound", index, load(new Location(HEAP, offset(pointer, -rank))), "");
+        }
+
+        for (int k = 1; k < rank; k++)
+        {
+            String size   = load(new Location(HEAP, offset(pointer, k - rank)));
+            String column = indices.get(k).accept(this);
             String row    = newTemporary();
             String cell   = newTemporary();
-            String column = indices.get(k).accept(this);
 
             // m[0][4] of a 2 x 3 is not m[1][1]: each inner index within its own dimension.
-            emit("checkBound", column, String.valueOf(dimensions.get(k)), "");
-            emit("*", index, String.valueOf(dimensions.get(k)), row);
+            emit("checkBound", column, size, "");
+            emit("*", index, size, row);
             emit("+", row, column, cell);
             index = cell;
         }
 
         String address = newTemporary();
 
-        emit("checkIndex", pointer, index, "");
         emit("+", pointer, index, address);
         return new Location(HEAP, address);
     }
@@ -1013,24 +1023,51 @@ public class QuadrupleGenerator implements AstVisitor<String>
         return pointer;
     }
 
+    /** The size of each dimension, evaluated in order. */
+    private List<String> sizesOf(List<Expression> dimensions)
+    {
+        List<String> sizes = new ArrayList<>();
+
+        for (Expression dimension : dimensions)
+        {
+            sizes.add(dimension.accept(this));
+        }
+        return sizes;
+    }
+
     /**
-     * An array is its length and then size consecutive cells; its pointer is
-     * the first cell, so heap[pointer - 1] is the length every access checks.
+     * An array is its sizes and then its cells, [d0 .. dk-1 | cells], and its
+     * pointer is the first cell: heap[pointer - 1] is the length of a vector,
+     * and heap[pointer - k + j] the size of dimension j of a matrix.
      * One of structures also gets a block per element, so writing
      * arreglo[0].campo never goes through a null.
      */
-    private String allocateArray(String size, String elementStruct, Set<String> expanding)
+    private String allocateArray(List<String> sizes, String elementStruct, Set<String> expanding)
     {
+        String size = sizes.get(0);
+
+        emit("checkSize", size, "", "");
+        for (int k = 1; k < sizes.size(); k++)
+        {
+            String total = newTemporary();
+
+            emit("checkSize", sizes.get(k), "", "");
+            emit("*", size, sizes.get(k), total);
+            size = total;
+        }
+
         String cells   = newTemporary();
         String pointer = newTemporary();
 
-        emit("checkSize", size, "", "");
-        emit("+", size, "1", cells);
+        emit("+", size, String.valueOf(sizes.size()), cells);
 
         String header = reserve(cells);
 
-        store(new Location(HEAP, header), size);
-        emit("+", header, "1", pointer);
+        for (int k = 0; k < sizes.size(); k++)
+        {
+            store(new Location(HEAP, offset(header, k)), sizes.get(k));
+        }
+        emit("+", header, String.valueOf(sizes.size()), pointer);
 
         if (elementStruct == null)
         {
@@ -1080,7 +1117,7 @@ public class QuadrupleGenerator implements AstVisitor<String>
 
             if (field.isArray() && field.getSize() >= 0)
             {
-                value = allocateArray(String.valueOf(field.getSize()), nested, expanding);
+                value = allocateArray(List.of(String.valueOf(field.getSize())), nested, expanding);
             }
             else if (!field.isArray() && nested != null)
             {

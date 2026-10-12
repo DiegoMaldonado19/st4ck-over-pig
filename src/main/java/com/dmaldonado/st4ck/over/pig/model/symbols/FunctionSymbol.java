@@ -101,7 +101,7 @@ public class FunctionSymbol extends Symbol
             VariableSymbol mine   = parameters.get(i);
             VariableSymbol theirs = other.parameters.get(i);
 
-            if (mine.getType() != theirs.getType() || mine.isArray() != theirs.isArray()
+            if (mine.getType() != theirs.getType() || mine.getRank() != theirs.getRank()
                     || !Objects.equals(mine.getStructName(), theirs.getStructName()))
             {
                 return false;
@@ -117,7 +117,8 @@ public class FunctionSymbol extends Symbol
     public String getSignature()
     {
         return getName() + "(" + parameters.stream()
-                .map(parameter -> (parameter.isArray() ? "[] " : "") + parameter.getTypeText())
+                .map(parameter -> (parameter.isArray() ? "[]".repeat(parameter.getRank()) + " " : "")
+                        + parameter.getTypeText())
                 .collect(Collectors.joining(", ")) + ")";
     }
 

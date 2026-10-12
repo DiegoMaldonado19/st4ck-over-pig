@@ -165,7 +165,7 @@ public class YAstBuilder extends YParserBaseVisitor<AstNode>
         {
             return null;
         }
-        return new Parameter(ctx.ID().getText(), ctx.tipo().getText(), ctx.COR_IZQ() != null, ctx.LLAVE_IZQ() != null,
+        return new Parameter(ctx.ID().getText(), ctx.tipo().getText(), ctx.COR_IZQ() != null ? 1 : 0, ctx.LLAVE_IZQ() != null,
                 line(ctx), column(ctx));
     }
 

@@ -18,6 +18,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.expression.IncrementExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.LiteralExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.MemberAccessExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.MethodCallExpression;
+import com.dmaldonado.st4ck.over.pig.model.ast.expression.NewArrayExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.NewExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.ReadExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.TernaryExpression;
@@ -84,6 +85,7 @@ public interface AstVisitor<T>
     T visitFunctionCallExpression(FunctionCallExpression node);
     T visitMethodCallExpression(MethodCallExpression node);
     T visitNewExpression(NewExpression node);
+    T visitNewArrayExpression(NewArrayExpression node);
     T visitThisExpression(ThisExpression node);
     T visitTernaryExpression(TernaryExpression node);
     T visitReadExpression(ReadExpression node);

@@ -267,7 +267,7 @@ public class PigAstBuilder extends PigParserBaseVisitor<AstNode>
         {
             return null;
         }
-        return new Parameter(ctx.ID().getText(), ctx.tipo().getText(), false, false, line(ctx), column(ctx));
+        return new Parameter(ctx.ID().getText(), ctx.tipo().getText(), 0, false, line(ctx), column(ctx));
     }
 
     /* =================================================================

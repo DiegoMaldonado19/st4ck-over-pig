@@ -28,6 +28,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.expression.IncrementExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.LiteralExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.MemberAccessExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.MethodCallExpression;
+import com.dmaldonado.st4ck.over.pig.model.ast.expression.NewArrayExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.NewExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.ReadExpression;
 import com.dmaldonado.st4ck.over.pig.model.ast.expression.TernaryExpression;
@@ -232,9 +233,19 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
                 built instanceof Assignment assignment && assignment.getTarget() instanceof MemberAccessExpression
                         member && member.getMemberName().equals(name));
 
-        if (repeated || rank > 1)
+        if (repeated)
         {
-            // A repeated or matrix attribute is reported by the analyzer; its value would only add noise.
+            // A repeated attribute is reported by the analyzer; its value would only add noise.
+        }
+        else if (rank > 1 && initializer != null)
+        {
+            // A matrix is created when the object is: its sizes may be variables, its rows a literal.
+            AstNode matrix = array(name, baseType(ctx.tipo()), rank, initializer, ctx);
+
+            if (matrix != null)
+            {
+                initializeThroughLocal(name, matrix, ctx, initializers);
+            }
         }
         else if (initializer instanceof ZParser.InicializadorNuevoArregloContext created)
         {
@@ -243,18 +254,15 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
             size = rank == 1 && created.expresion().size() == 1 && createdType.equals(baseType(ctx.tipo()))
                    ? constant(created.expresion(0)) : -1;
 
-            // new int[cap] is only known when the object is created, and a mismatch is reported there:
-            // a local with the attribute's name, analysed as any declaration, then stored in it.
+            // new int[cap] is only known when the object is created, and a mismatch is reported there.
             if (size < 0)
             {
                 List<Expression> dimensions = expressions(created.expresion());
 
                 if (dimensions != null)
                 {
-                    initializers.add(new ArrayDeclaration(name, dimensions, rank, baseType(ctx.tipo()), List.of(),
-                            createdType, line(ctx), column(ctx)));
-                    initializers.add(new Assignment(attributeOf(name, ctx),
-                            new IdentifierExpression(name, line(ctx), column(ctx)), line(ctx), column(ctx)));
+                    initializeThroughLocal(name, new ArrayDeclaration(name, dimensions, rank, baseType(ctx.tipo()),
+                            List.of(), createdType, line(ctx), column(ctx)), ctx, initializers);
                 }
             }
         }
@@ -290,6 +298,18 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         return new StructField(name, baseType(ctx.tipo()), rank, size, line(ctx), column(ctx));
     }
 
+    /**
+     * A local with the attribute's name, analysed as any declaration, then stored in it: how an
+     * array whose size is only known when the object is created gets into the object.
+     */
+    private static void initializeThroughLocal(String name, AstNode local, ParserRuleContext ctx,
+                                               List<AstNode> initializers)
+    {
+        initializers.add(local);
+        initializers.add(new Assignment(attributeOf(name, ctx),
+                new IdentifierExpression(name, line(ctx), column(ctx)), line(ctx), column(ctx)));
+    }
+
     /** this.name, reached through the object even where a parameter has the same name. */
     private static Expression attributeOf(String name, ParserRuleContext ctx)
     {
@@ -304,7 +324,7 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         {
             return null;
         }
-        return new Parameter(ctx.ID().getText(), baseType(ctx.tipo()), rank(ctx.tipo()) > 0, false,
+        return new Parameter(ctx.ID().getText(), baseType(ctx.tipo()), rank(ctx.tipo()), false,
                 line(ctx), column(ctx));
     }
 
@@ -822,6 +842,15 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
     public AstNode visitPrimariaLeer(ZParser.PrimariaLeerContext ctx)
     {
         return new ReadExpression(line(ctx), column(ctx));
+    }
+
+    @Override
+    public AstNode visitPrimariaNuevoArreglo(ZParser.PrimariaNuevoArregloContext ctx)
+    {
+        List<Expression> dimensions = expressions(ctx.expresion());
+
+        return (missing(ctx.tipoBase()) || dimensions == null) ? null
+                : new NewArrayExpression(ctx.tipoBase().getText(), dimensions, line(ctx), column(ctx));
     }
 
     @Override

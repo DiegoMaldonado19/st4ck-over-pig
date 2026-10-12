@@ -13,7 +13,8 @@ options { tokenVocab = ZLexer; }
  *     'else' queda con el 'if' mas cercano, como en Java
  *   - 'switch' con fallthrough: 'break' es opcional
  *   - 'for ( ; ; )': las tres partes son opcionales
- *   - un arreglo se crea con 'new T[n]' o '{...}' solo al declararlo
+ *   - un arreglo se crea con '{...}' solo al declararlo; 'new T[n]' es una
+ *     expresion mas: celdas = new int[f][c];
  */
 
 /* =====================================================================
@@ -133,6 +134,7 @@ expresionPrimaria
     | NULL                                        # primariaNulo
     | THIS                                        # primariaThis
     | READLN PAR_IZQ PAR_DER                      # primariaLeer
+    | NEW tipoBase ( COR_IZQ expresion COR_DER )+ # primariaNuevoArreglo
     | NEW ID PAR_IZQ listaExpresiones? PAR_DER    # primariaNuevo
     | ID PAR_IZQ listaExpresiones? PAR_DER        # primariaLlamada
     | ID                                          # primariaIdentificador
