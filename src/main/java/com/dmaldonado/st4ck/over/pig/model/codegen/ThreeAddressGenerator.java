@@ -68,8 +68,10 @@ import java.util.regex.Pattern;
  * returns the OPERAND that holds its value: a variable, a temporary or a
  * literal. Statements return null.
  *
- * It grows phase by phase. What it does not translate yet throws
- * UnsupportedOperationException, and the pipeline shows that instead.
+ * What outlives a call lives in the heap, reserved by moving H (design, 3):
+ * an array is [sizes | cells], a structure [fields] and an object [class id |
+ * fields]. A variable holds the address of its block, so passing it passes
+ * it by reference.
  */
 public class ThreeAddressGenerator implements AstVisitor<String>
 {
@@ -107,6 +109,11 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     /** Every overload of each function: a name declared more than once carries its parameter types. */
     private final SymbolTable                 symbolTable;
 
+    /** Layout of every structure and class: a field's index is its place in the block. */
+    private final Map<String, StructDeclaration> layouts  = new HashMap<>();
+    /** The id each class writes first in its objects, 1..n: what a polymorphic call reads (Fase 8). */
+    private final Map<String, Integer>           classIds = new HashMap<>();
+
     private int      temporaryCount;
     private int      labelCount;
     /** Each language prints its booleans with its own words. */
@@ -114,6 +121,8 @@ public class ThreeAddressGenerator implements AstVisitor<String>
 
     /** The function being generated: what its return gives back takes its return type. */
     private FunctionDeclaration function;
+    /** The object the method being generated runs on, its this: null outside a class. */
+    private String              self;
 
     public ThreeAddressGenerator(SymbolTable symbolTable)
     {
@@ -128,6 +137,22 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     {
         Program root = programs.get(programs.size() - 1);
 
+        // Every layout first: a function may reach an object of a class that another file declares.
+        for (Program program : programs)
+        {
+            for (AstNode global : program.getGlobals())
+            {
+                if (global instanceof StructDeclaration struct)
+                {
+                    layouts.put(struct.getName(), struct);
+                }
+                else if (global instanceof ClassDeclaration type)
+                {
+                    layouts.put(type.getName(), type.getLayout());
+                    classIds.put(type.getName(), classIds.size() + 1);
+                }
+            }
+        }
         language = root.getLanguage();
 
         for (AstNode global : root.getGlobals())
@@ -156,6 +181,13 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         for (Program program : programs)
         {
             language = program.getLanguage();
+            for (AstNode global : program.getGlobals())
+            {
+                if (global instanceof ClassDeclaration type)
+                {
+                    type.accept(this);
+                }
+            }
             for (FunctionDeclaration declaration : program.getFunctions())
             {
                 declaration.accept(this);
@@ -184,31 +216,58 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         return null;
     }
 
-    /** Without a value a variable still gets one: the slot of a local keeps what a previous call left. */
+    /**
+     * Without a value a variable still gets one: the slot of a local keeps
+     * what a previous call left. A Y? structure without a literal gets its
+     * block, to be filled field by field; an object without new is null.
+     */
     @Override
     public String visitVariableDeclaration(VariableDeclaration node)
     {
-        if (node.getType() == DataType.ESTRUCTURA)
+        Expression value     = node.getInitialValue();
+        String     structure = structure(node.getType(), node.getTypeText());
+
+        if (value == null && structure != null)
         {
-            throw pending(5, "estructuras y objetos");
+            emit("=", allocate(structure, new HashSet<>()), "", name(node.getSymbol()));
+            return null;
         }
-
-        Expression value = node.getInitialValue();
-
         emit("=", value == null ? "0" : operand(value, node.getType()), "", name(node.getSymbol()));
         return null;
     }
 
+    /** One block for every dimension together; a Zetariano "int[] a;" stays null, "int[] b = a;" names a. */
     @Override
     public String visitArrayDeclaration(ArrayDeclaration node)
     {
-        throw pending(5, "arreglos");
+        if (node.getDimensions().isEmpty())
+        {
+            String array = node.getInitialValues().isEmpty() ? "0" : node.getInitialValues().get(0).accept(this);
+
+            emit("=", array, "", name(node.getSymbol()));
+            return null;
+        }
+
+        List<Expression> values  = node.getFlatValues();
+        String           pointer = allocateArray(sizes(node.getDimensions()),
+                values.isEmpty() ? structure(node.getElementType(), node.getTypeText()) : null, new HashSet<>());
+
+        emit("=", pointer, "", name(node.getSymbol()));
+        for (int i = 0; i < values.size(); i++)
+        {
+            String cell = offset(pointer, i);
+
+            emit("[]=", cell, operand(values.get(i), node.getElementType()), HEAP);
+        }
+        return null;
     }
 
+    /** A Y? structure declared inside a function: its layout, for what follows it. generate() takes the global ones. */
     @Override
     public String visitStructDeclaration(StructDeclaration node)
     {
-        throw pending(5, "estructuras");
+        layouts.put(node.getName(), node);
+        return null;
     }
 
     @Override
@@ -217,13 +276,22 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         return null;
     }
 
+    /** Its layout was taken by generate(): here each constructor and method becomes a function. */
     @Override
     public String visitClassDeclaration(ClassDeclaration node)
     {
-        throw pending(5, "clases");
+        for (FunctionDeclaration method : node.getMethods())
+        {
+            method.accept(this);
+        }
+        return null;
     }
 
-    /** func f(p1, p2): ... end_func f, which is also the return of a function that reaches its end. */
+    /**
+     * func f(p1, p2): ... end_func f, which is also the return of a function
+     * that reaches its end. A constructor or method gets its object first, as
+     * this (design, 4.4).
+     */
     @Override
     public String visitFunctionDeclaration(FunctionDeclaration node)
     {
@@ -232,6 +300,11 @@ public class ThreeAddressGenerator implements AstVisitor<String>
 
         localNames.clear();
         function = node;
+        self     = node.getOwnerClass() == null ? null : declare("this", false);
+        if (self != null)
+        {
+            parameters.add(self);
+        }
         for (Parameter parameter : node.getParameters())
         {
             parameters.add(name(parameter.getSymbol()));
@@ -269,9 +342,7 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     @Override
     public String visitAssignment(Assignment node)
     {
-        String target = variable(node.getTarget());
-
-        emit("=", operand(node.getValue(), node.getTarget().getComputedType()), "", target);
+        assign(node.getTarget(), operand(node.getValue(), node.getTarget().getComputedType()));
         return null;
     }
 
@@ -371,10 +442,49 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         return null;
     }
 
+    /**
+     * Every case compares first and then the bodies follow in order, so a
+     * case without break falls into the next one (design, 4.3). break leaves
+     * the switch; continue still belongs to the loop around it.
+     */
     @Override
     public String visitSwitchStatement(SwitchStatement node)
     {
-        throw pending(5, "elegir / switch");
+        String       value     = node.getDiscriminant().accept(this);
+        DataType     type      = node.getDiscriminant().getComputedType();
+        String       end       = newLabel();
+        String       otherwise = end;
+        List<String> bodies    = new ArrayList<>();
+
+        for (CaseClause clause : node.getCases())
+        {
+            String body = newLabel();
+
+            bodies.add(body);
+            if (clause.isDefault())
+            {
+                otherwise = body;
+            }
+            else if (type == DataType.TEXTUM)
+            {
+                emit("if!=", callHelper(STRING_EQUALS, value, clause.getValue().accept(this)), "0", body);
+            }
+            else
+            {
+                emit(type == DataType.DECIMALIS ? "iff==" : "if==", value, operand(clause.getValue(), type), body);
+            }
+        }
+        jump(otherwise);
+
+        breakLabels.push(end);
+        for (int i = 0; i < bodies.size(); i++)
+        {
+            label(bodies.get(i));
+            node.getCases().get(i).accept(this);
+        }
+        breakLabels.pop();
+        label(end);
+        return null;
     }
 
     @Override
@@ -444,9 +554,7 @@ public class ThreeAddressGenerator implements AstVisitor<String>
             return null;
         }
 
-        String value = read(node.getTarget().getComputedType());
-
-        emit("=", value, "", variable(node.getTarget()));
+        assign(node.getTarget(), read(node.getTarget().getComputedType()));
         return null;
     }
 
@@ -461,7 +569,12 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         }
         if (node.getExpression() instanceof FunctionCallExpression call)
         {
-            call(call.getFunction(), call.getArguments(), false);
+            call(call.getFunction(), implicitReceiver(call.getFunction()), call.getArguments(), false);
+            return null;
+        }
+        if (node.getExpression() instanceof MethodCallExpression call)
+        {
+            call(call.getFunction(), call.getOwner().accept(this), call.getArguments(), false);
             return null;
         }
         if (node.getExpression() instanceof ReadExpression)
@@ -541,7 +654,7 @@ public class ThreeAddressGenerator implements AstVisitor<String>
 
         String before = newTemporary();
 
-        emit("=", variable(node.getTarget()), "", before);
+        emit("=", node.getTarget().accept(this), "", before);
         increment(node.getTarget(), node.getOperator());
         return before;
     }
@@ -549,12 +662,12 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     /** x++ is x = x + 1 through a temporary, as written by hand: t1 = x + 1, x = t1. Returns the new value. */
     private String increment(Expression target, String operator)
     {
-        String  variable = variable(target);
+        String  current  = target.accept(this);
         boolean floating = target.getComputedType() == DataType.DECIMALIS;
         String  result   = newTemporary();
 
-        emit(("++".equals(operator) ? "+" : "-") + (floating ? "f" : ""), variable, floating ? "1.0" : "1", result);
-        emit("=", result, "", variable);
+        emit(("++".equals(operator) ? "+" : "-") + (floating ? "f" : ""), current, floating ? "1.0" : "1", result);
+        assign(target, result);
         return result;
     }
 
@@ -570,12 +683,13 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         };
     }
 
+    /** A variable by its name; an attribute named alone inside a method, from its cell in this object. */
     @Override
     public String visitIdentifierExpression(IdentifierExpression node)
     {
         if (node.getSymbol().getCategory() == SymbolCategory.ATTRIBUTE)
         {
-            throw pending(5, "atributos");
+            return load(address(node));
         }
         return name(node.getSymbol());
     }
@@ -583,31 +697,42 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     @Override
     public String visitArrayAccessExpression(ArrayAccessExpression node)
     {
-        throw pending(5, "arreglos");
+        return load(address(node));
     }
 
     @Override
     public String visitMemberAccessExpression(MemberAccessExpression node)
     {
-        throw pending(5, "estructuras y objetos");
+        return load(address(node));
     }
 
     @Override
     public String visitFunctionCallExpression(FunctionCallExpression node)
     {
-        return call(node.getFunction(), node.getArguments(), true);
+        return call(node.getFunction(), implicitReceiver(node.getFunction()), node.getArguments(), true);
+    }
+
+    /** A method called without an object, from another one of its class, runs on the same object. */
+    private String implicitReceiver(FunctionSymbol callee)
+    {
+        return callee.isMethod() ? self : null;
     }
 
     /**
      * Every argument first and then their params, together, right before the
      * call: a call inside an argument never ends up between them (design,
-     * 4.4). Each one goes as its parameter's type, 2 into a decimalis is 2.0;
-     * an array goes as it is, its address.
+     * 4.4). The object of a method goes first, as this. Each argument goes as
+     * its parameter's type, 2 into a decimalis is 2.0; an array goes as it
+     * is, its address.
      */
-    private String call(FunctionSymbol callee, List<Expression> arguments, boolean wantResult)
+    private String call(FunctionSymbol callee, String receiver, List<Expression> arguments, boolean wantResult)
     {
         List<String> values = new ArrayList<>();
 
+        if (receiver != null)
+        {
+            values.add(receiver);
+        }
         for (int i = 0; i < arguments.size(); i++)
         {
             VariableSymbol parameter = callee.getParameters().get(i);
@@ -629,25 +754,31 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     @Override
     public String visitMethodCallExpression(MethodCallExpression node)
     {
-        throw pending(5, "metodos");
+        return call(node.getFunction(), node.getOwner().accept(this), node.getArguments(), true);
     }
 
+    /** novus / new: the object is reserved with its class id, and its constructor fills it as this (design, 4.6). */
     @Override
     public String visitNewExpression(NewExpression node)
     {
-        throw pending(5, "objetos");
+        String object = allocate(node.getClassName(), new HashSet<>());
+
+        call(node.getConstructor(), object, node.getArguments(), false);
+        return object;
     }
 
+    /** new int[f][c] as a value: the same block a declaration reserves. */
     @Override
     public String visitNewArrayExpression(NewArrayExpression node)
     {
-        throw pending(5, "arreglos");
+        return allocateArray(sizes(node.getDimensions()), structure(node.getElementType(), node.getTypeText()),
+                new HashSet<>());
     }
 
     @Override
     public String visitThisExpression(ThisExpression node)
     {
-        throw pending(5, "objetos");
+        return self;
     }
 
     @Override
@@ -674,10 +805,33 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         return read(node.getComputedType());
     }
 
+    /** A structure literal: a fresh block, each value in the field it names or in its place. */
     @Override
     public String visitCompositeLiteralExpression(CompositeLiteralExpression node)
     {
-        throw pending(5, "estructuras");
+        StructDeclaration struct  = layouts.get(node.getStructName());
+        String            pointer = reserve(String.valueOf(struct.getFields().size()));
+
+        for (int i = 0; i < node.getValues().size(); i++)
+        {
+            int    index = node.isNamed() ? fieldIndex(struct, node.getFieldNames().get(i)) : i;
+            String cell  = offset(pointer, index);
+
+            emit("[]=", cell, fieldValue(node.getValues().get(i), struct.getFields().get(index)), HEAP);
+        }
+        return pointer;
+    }
+
+    /** "animales: Animal[7]" names the TYPE: it creates an array of that size instead of reading one. */
+    private String fieldValue(Expression value, StructField field)
+    {
+        if (field.isArray() && value instanceof ArrayAccessExpression access
+                && access.getArray() instanceof IdentifierExpression typeName && typeName.getSymbol() == null)
+        {
+            return allocateArray(List.of(access.getIndex().accept(this)),
+                    structure(field.getType(), field.getTypeText()), new HashSet<>());
+        }
+        return field.isArray() ? value.accept(this) : operand(value, field.getType());
     }
 
     /* =================================================================
@@ -813,16 +967,6 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         return result;
     }
 
-    /** The variable a statement writes. Array cells and attributes live in the heap: Fase 5. */
-    private String variable(Expression target)
-    {
-        if (target instanceof IdentifierExpression identifier)
-        {
-            return identifier.accept(this);
-        }
-        throw pending(5, "escritura en arreglos y atributos");
-    }
-
     /**
      * The name a variable has in the code: its own, unless a global, another
      * local of the same function or a reserved name already has it, in which
@@ -883,6 +1027,244 @@ public class ThreeAddressGenerator implements AstVisitor<String>
             name = base + "_" + n;
         }
         return name;
+    }
+
+    /* =================================================================
+     * Heap: arrays, structures and objects (design, 3, 4.5 and 4.6)
+     * ================================================================= */
+
+    /** target = value: a variable by its name; an element, a field or an attribute through its cell. */
+    // ponytail: the value goes before the cell, and a[i] += 1 locates a[i] twice: an index with side effects
+    // (a[i++] = i, a[f()] += 1) would not behave as in Java. No program writes one.
+    private void assign(Expression target, String value)
+    {
+        if (target instanceof IdentifierExpression identifier
+                && identifier.getSymbol().getCategory() != SymbolCategory.ATTRIBUTE)
+        {
+            emit("=", value, "", name(identifier.getSymbol()));
+            return;
+        }
+        emit("[]=", address(target), value, HEAP);
+    }
+
+    /** The cell of an element (m[i][j]), a field (p.campo) or an attribute named alone inside a method. */
+    private String address(Expression target)
+    {
+        if (target instanceof ArrayAccessExpression access)
+        {
+            return element(access);
+        }
+        if (target instanceof MemberAccessExpression member)
+        {
+            return field(member.getOwner().accept(this), member.getOwner().getStructName(), member.getMemberName());
+        }
+        return field(self, function.getOwnerClass(), ((IdentifierExpression) target).getName());
+    }
+
+    /** base + k, k being the field's place in the block: an object keeps its class id ahead of its fields. */
+    private String field(String base, String type, String fieldName)
+    {
+        return offset(base, fieldIndex(layouts.get(type), fieldName) + (classIds.containsKey(type) ? 1 : 0));
+    }
+
+    /**
+     * m[i][j] is one cell of the flattened matrix, m + i * d1 + j: the sizes
+     * are read from the header ahead of the cells, so they may be variables
+     * (design, 4.5).
+     */
+    private String element(ArrayAccessExpression access)
+    {
+        List<Expression> indices = new ArrayList<>();
+        Expression       base    = access;
+
+        while (base instanceof ArrayAccessExpression inner)
+        {
+            indices.add(0, inner.getIndex());
+            base = inner.getArray();
+        }
+
+        int    rank    = indices.size();
+        String pointer = base.accept(this);
+        String index   = indices.get(0).accept(this);
+
+        for (int k = 1; k < rank; k++)
+        {
+            String size   = load(offset(pointer, k - rank));
+            String column = indices.get(k).accept(this);
+            String row    = newTemporary();
+            String cell   = newTemporary();
+
+            emit("*", index, size, row);
+            emit("+", row, column, cell);
+            index = cell;
+        }
+
+        String address = newTemporary();
+
+        emit("+", pointer, index, address);
+        return address;
+    }
+
+    private String load(String address)
+    {
+        String value = newTemporary();
+
+        emit("=[]", HEAP, address, value);
+        return value;
+    }
+
+    /** base + k as an operand: base itself when k is 0, and base - 1 for the size right before a vector. */
+    private String offset(String base, int k)
+    {
+        if (k == 0)
+        {
+            return base;
+        }
+
+        String address = newTemporary();
+
+        emit(k > 0 ? "+" : "-", base, String.valueOf(Math.abs(k)), address);
+        return address;
+    }
+
+    /** H is the first free cell of the heap: reserving n cells is taking H and moving it n ahead. */
+    private String reserve(String size)
+    {
+        String pointer = newTemporary();
+
+        emit("=", "H", "", pointer);
+        emit("+", "H", size, "H");
+        return pointer;
+    }
+
+    private List<String> sizes(List<Expression> dimensions)
+    {
+        return dimensions.stream().map(dimension -> dimension.accept(this)).toList();
+    }
+
+    /** a + b or a * b of two sizes, or its value when both are constants: series a[10] reserves H + 11. */
+    private String fold(String operator, String left, String right)
+    {
+        if (INTEGER.matcher(left).matches() && INTEGER.matcher(right).matches())
+        {
+            int first  = Integer.parseInt(left);
+            int second = Integer.parseInt(right);
+
+            return String.valueOf("*".equals(operator) ? first * second : first + second);
+        }
+
+        String result = newTemporary();
+
+        emit(operator, left, right, result);
+        return result;
+    }
+
+    /**
+     * An array is its sizes and then its cells, [d0 .. dk-1 | cells], and its
+     * pointer is its first cell: heap[p - 1] is the length of a vector and
+     * heap[p - k + j] the size j of a matrix (design, 4.5). An array of
+     * structures gets a block in each cell, so lista[0].campo can be written
+     * right away.
+     */
+    private String allocateArray(List<String> sizes, String structure, Set<String> expanding)
+    {
+        String total = sizes.get(0);
+
+        for (int k = 1; k < sizes.size(); k++)
+        {
+            total = fold("*", total, sizes.get(k));
+        }
+
+        String header = reserve(fold("+", total, String.valueOf(sizes.size())));
+
+        for (int k = 0; k < sizes.size(); k++)
+        {
+            String cell = offset(header, k);
+
+            emit("[]=", cell, sizes.get(k), HEAP);
+        }
+
+        String pointer = offset(header, sizes.size());
+
+        if (structure != null)
+        {
+            String index = newTemporary();
+            String cell  = newTemporary();
+            String loop  = newLabel();
+            String end   = newLabel();
+
+            emit("=", "0", "", index);
+            label(loop);
+            emit("if>=", index, total, end);
+            emit("+", pointer, index, cell);
+            emit("[]=", cell, allocate(structure, expanding), HEAP);
+            emit("+", index, "1", index);
+            jump(loop);
+            label(end);
+        }
+        return pointer;
+    }
+
+    /**
+     * A zeroed block for a structure or an object, an object's class id in
+     * its first cell, with its nested structures and fixed size arrays
+     * reserved too, so it can be written field by field. A field of a type
+     * already being reserved (a recursive structure) and an object inside
+     * another one stay null.
+     */
+    private String allocate(String type, Set<String> expanding)
+    {
+        List<StructField> fields  = layouts.get(type).getFields();
+        Integer           classId = classIds.get(type);
+        int               first   = classId == null ? 0 : 1;
+        String            pointer = reserve(String.valueOf(first + fields.size()));
+
+        if (classId != null)
+        {
+            emit("[]=", pointer, String.valueOf(classId), HEAP);
+        }
+        expanding.add(type);
+        for (int i = 0; i < fields.size(); i++)
+        {
+            StructField field  = fields.get(i);
+            String      nested = structure(field.getType(), field.getTypeText());
+
+            if (expanding.contains(nested))
+            {
+                nested = null;
+            }
+
+            String value = field.isArray() && field.getSize() >= 0
+                           ? allocateArray(List.of(String.valueOf(field.getSize())), nested, expanding)
+                           : !field.isArray() && nested != null ? allocate(nested, expanding) : null;
+
+            if (value != null)
+            {
+                String cell = offset(pointer, first + i);
+
+                emit("[]=", cell, value, HEAP);
+            }
+        }
+        expanding.remove(type);
+        return pointer;
+    }
+
+    /** The structure a declaration without literal, or an array of them, reserves; null for the rest, objects too. */
+    private String structure(DataType type, String typeText)
+    {
+        return type == DataType.ESTRUCTURA && !classIds.containsKey(typeText) ? typeText : null;
+    }
+
+    private static int fieldIndex(StructDeclaration struct, String fieldName)
+    {
+        for (int i = 0; i < struct.getFields().size(); i++)
+        {
+            if (struct.getFields().get(i).getName().equals(fieldName))
+            {
+                return i;
+            }
+        }
+        throw new IllegalStateException("'" + fieldName + "' is not a field of " + struct.getName());
     }
 
     /* =================================================================
@@ -1240,12 +1622,6 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         body.accept(this);
         continueLabels.pop();
         breakLabels.pop();
-    }
-
-    /** What is not translated yet, and the phase that brings it. */
-    private static UnsupportedOperationException pending(int phase, String what)
-    {
-        return new UnsupportedOperationException("pendiente: Fase " + phase + " (" + what + ")");
     }
 
     private void emit(String op, String arg1, String arg2, String result)

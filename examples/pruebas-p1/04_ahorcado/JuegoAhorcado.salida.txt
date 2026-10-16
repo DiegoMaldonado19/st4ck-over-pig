@@ -292,7 +292,7 @@ Puntaje de la partida: 0
 ----- MARCADOR -----
 Partidas: 3 | Ganadas: 2 | Perdidas: 1
 Racha actual: 0 | Mejor racha: 2
-Victorias: 66.66666666666667%
+Victorias: 66.666664%
 Jugar otra vez? (1 = si, 0 = no)
 Puntaje total: 155
 Titulo obtenido: Aprendiz

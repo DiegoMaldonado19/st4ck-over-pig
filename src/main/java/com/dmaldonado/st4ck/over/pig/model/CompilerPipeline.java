@@ -84,10 +84,10 @@ public class CompilerPipeline
      * @param ast          null when the source did not get past the lexer.
      * @param symbolTable  empty when the AST was never built.
      * @param steps        empty only when the file was never parsed at all.
-     * @param quadruples   empty unless the program is valid and has a main.
-     * @param cCode        the C translation of the quadruples, or "".
-     * @param threeAddressCode the three address code written by hand, what is still pending, or "".
-     * @param assembly     its RISC-V translation, or "" while the three address code is incomplete.
+     * @param quadruples   the three address code: empty unless the program is valid and has a main.
+     * @param cCode        the C of the P1 generator, or "": it goes away in Fase 6.
+     * @param threeAddressCode the quadruples as text, what RISC-V cannot take of them, or "".
+     * @param assembly     their RISC-V translation, or "".
      */
     public record CompilationResult(Program ast, SymbolTable symbolTable, List<ProcessStep> steps,
                                     List<CompilerError> errors, List<Quadruple> quadruples,
@@ -229,22 +229,20 @@ public class CompilerPipeline
         // que ejecutar: un .y o un .z se analiza y ahi termina.
         if (errorManager.getErrors().isEmpty() && language == Language.PIG)
         {
-            quadruples = new QuadrupleGenerator().generate(units.stream().map(Unit::ast).toList(),
-                                                           symbolTable.getGlobalSize());
-            cCode      = CEmitter.emit(quadruples);
+            List<Program> programs = units.stream().map(Unit::ast).toList();
 
-            // The new translation still grows phase by phase: what it lacks is shown, not failed.
+            cCode = CEmitter.emit(new QuadrupleGenerator().generate(programs, symbolTable.getGlobalSize()));
+
+            // What RISC-V cannot take, a call with more than eight arguments, is shown, not failed.
             try
             {
-                List<Quadruple> code = new ThreeAddressGenerator(symbolTable)
-                        .generate(units.stream().map(Unit::ast).toList());
-
-                threeAddressCode = ThreeAddressPrinter.print(code);
-                assembly         = new RiscVEmitter().emit(code);
+                quadruples       = new ThreeAddressGenerator(symbolTable).generate(programs);
+                threeAddressCode = ThreeAddressPrinter.print(quadruples);
+                assembly         = new RiscVEmitter().emit(quadruples);
             }
-            catch (UnsupportedOperationException pending)
+            catch (UnsupportedOperationException limit)
             {
-                threeAddressCode = "// " + pending.getMessage();
+                threeAddressCode = "// " + limit.getMessage();
             }
         }
         return new CompilationResult(root.ast(), symbolTable, root.steps(), errorManager.getErrors(),

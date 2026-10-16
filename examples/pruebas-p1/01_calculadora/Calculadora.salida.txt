@@ -44,7 +44,7 @@ Resultado: 6.0
 Elige una opcion:
 Ingresa la base:
 Ingresa el exponente (entero):
-2.5 ^ 10 = 9536.7431640625
+2.5 ^ 10 = 9536.743164
 
 =========== CALCULADORA ZETARIANA ===========
  1. Sumar             2. Restar
@@ -60,7 +60,7 @@ Ingresa hasta 10 numeros (0 para terminar):
 Cantidad: 3
 Suma: 14.5
 Maximo: 7.0
-Promedio: 4.833333333333333
+Promedio: 4.833333
 
 =========== CALCULADORA ZETARIANA ===========
  1. Sumar             2. Restar
@@ -75,8 +75,8 @@ Elige una opcion:
 --- Historial (3 resultados) ---
 #0: 0.0
 #1: 6.0
-#2: 9536.7431640625
-Promedio del historial: 3180.9143880208335
+#2: 9536.743164
+Promedio del historial: 3180.914307
 
 =========== CALCULADORA ZETARIANA ===========
  1. Sumar             2. Restar

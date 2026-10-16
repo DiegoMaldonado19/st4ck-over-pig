@@ -1,0 +1,13 @@
+public class Operacion {
+    int id;
+    int valorBase;
+
+    public int sumar(int n) {
+        if (n <= 0) {
+            return this.valorBase;
+        } else {
+            int total = n + sumar(n - 1);
+            return total;
+        }
+    }
+}
