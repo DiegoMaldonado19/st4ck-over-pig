@@ -3,8 +3,10 @@ package com.dmaldonado.st4ck.over.pig.model.codegen;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -18,11 +20,14 @@ import java.util.stream.Collectors;
  * its activation record, relative to fp; the globals and H in .data; the
  * heap is a block taken with sbrk, its base in s11, and cell i is at
  * s11 + 4 * i. Every value takes one word: a decimalis is a 32 bit float.
+ * Calls follow the RISC-V convention: arguments in a0-a7, the result in a0.
  */
 public class RiscVEmitter
 {
     /** RARS gives sbrk about 3.75 MiB: 3 MiB are 786 432 cells. */
     private static final int                 HEAP_BYTES  = 3 * 1024 * 1024;
+    /** a0-a7 carry the arguments of a call. */
+    private static final int                 ARGUMENTS   = 8;
     private static final String              HEAP        = "heap";
     private static final Pattern             INTEGER     = Pattern.compile("-?\\d+");
     private static final Pattern             DECIMAL     = Pattern.compile("-?\\d+\\.\\d*");
@@ -34,6 +39,98 @@ public class RiscVEmitter
     private static final Map<String, String> SKIP_BRANCH = Map.of("<", "bge", "<=", "bgt", ">", "ble", ">=", "blt",
                                                                   "==", "bne", "!=", "beq");
 
+    private static final int                 BUFFER_BYTES  = 1024;
+    private static final String              READ_INT      = "_rt_read_int";
+    private static final String              READ_CHAR     = "_rt_read_char";
+    private static final String              READ_STRING   = "_rt_read_str";
+    /** ReadString of one console line into _buffer, its '\n' included: how every read routine starts. */
+    private static final String              READ_LINE     = """
+                la   a0, _buffer
+                li   a1, %d
+                li   a7, 8
+                ecall
+            """.formatted(BUFFER_BYTES);
+    /**
+     * What each read routine does with the line in _buffer, the only code in
+     * assembly: the system call works with bytes and the heap with a character
+     * per cell. A line is read whole, so what is left of it never reaches the
+     * next read. read_int takes what strtol would, and 0 when there is no
+     * number: ReadInt would stop the program on "x".
+     */
+    private static final Map<String, String> READ_ROUTINES = Map.of(
+            READ_STRING, """
+                la   t0, _buffer
+                la   t1, _H
+                lw   t2, 0(t1)
+                mv   a0, t2
+                slli t3, t2, 2
+                add  t3, t3, s11
+            _rt_read_str_loop:
+                lbu  t4, 0(t0)
+                beqz t4, _rt_read_str_end
+                li   t5, 10
+                beq  t4, t5, _rt_read_str_end
+                sw   t4, 0(t3)
+                addi t0, t0, 1
+                addi t3, t3, 4
+                addi t2, t2, 1
+                j    _rt_read_str_loop
+            _rt_read_str_end:
+                sw   zero, 0(t3)
+                addi t2, t2, 1
+                sw   t2, 0(t1)
+                ret
+            """,
+            READ_CHAR, """
+                la   t0, _buffer
+                lbu  a0, 0(t0)
+                li   t1, 10
+                bne  a0, t1, _rt_read_char_end
+                li   a0, 0
+            _rt_read_char_end:
+                ret
+            """,
+            READ_INT, """
+                la   t0, _buffer
+                li   a0, 0
+                li   t2, 0
+            _rt_read_int_blank:
+                lbu  t1, 0(t0)
+                li   t3, 32
+                beq  t1, t3, _rt_read_int_skip
+                li   t3, 9
+                bne  t1, t3, _rt_read_int_sign
+            _rt_read_int_skip:
+                addi t0, t0, 1
+                j    _rt_read_int_blank
+            _rt_read_int_sign:
+                li   t3, 45
+                bne  t1, t3, _rt_read_int_plus
+                li   t2, 1
+                addi t0, t0, 1
+                j    _rt_read_int_digit
+            _rt_read_int_plus:
+                li   t3, 43
+                bne  t1, t3, _rt_read_int_digit
+                addi t0, t0, 1
+            _rt_read_int_digit:
+                lbu  t1, 0(t0)
+                addi t1, t1, -48
+                bltz t1, _rt_read_int_done
+                li   t3, 9
+                bgt  t1, t3, _rt_read_int_done
+                li   t3, 10
+                mul  a0, a0, t3
+                add  a0, a0, t1
+                addi t0, t0, 1
+                j    _rt_read_int_digit
+            _rt_read_int_done:
+                beqz t2, _rt_read_int_end
+                neg  a0, a0
+            _rt_read_int_end:
+                ret
+            """);
+
     private final StringBuilder        text      = new StringBuilder();
     /** Every distinct string literal and its first cell: cell 0 is null, which reads as "". */
     private final Map<String, Integer> pool      = new LinkedHashMap<>();
@@ -42,9 +139,16 @@ public class RiscVEmitter
     private final Map<String, String>  functions = new HashMap<>();
     /** Where each value of the function being translated lives, relative to fp. */
     private final Map<String, Integer> offsets   = new HashMap<>();
+    /** The read routines the program used: they go after its functions. */
+    private final Set<String>          routines  = new LinkedHashSet<>();
 
     private int poolEnd = 1;
     private int skipCount;
+
+    /** The params already loaded for the call that comes next. */
+    private int    argumentCount;
+    /** Where every return of the function being translated goes: its one epilogue. */
+    private String exitLabel;
 
     public String emit(List<Quadruple> code)
     {
@@ -76,24 +180,34 @@ public class RiscVEmitter
                 function(code.subList(start, i + 1));
             }
         }
+        for (String routine : routines)
+        {
+            text.append('\n').append(routine).append(":\n").append(READ_LINE).append(READ_ROUTINES.get(routine));
+        }
         // The pool is complete only now: the data and the startup go first in the file.
         return data() + startup() + text;
     }
 
     /**
-     * One function. The caller pushed its parameters, the first one deepest:
-     * parameter i of n is at fp + 4 * (n - 1 - i). Below fp go ra, the
-     * caller's fp, and one slot for each variable and temporary.
+     * One function. Its parameters arrive in a0-a7 and the prologue copies
+     * them into its frame, so a call it makes can reuse those registers. Below
+     * fp go ra, the caller's fp, and one slot for each parameter, variable and
+     * temporary. Every return jumps to the one epilogue, at end_func.
      */
     private void function(List<Quadruple> body)
     {
         Quadruple    header     = body.get(0);
         List<String> parameters = header.arg1().isEmpty() ? List.of() : List.of(header.arg1().split(","));
 
-        offsets.clear();
-        for (int i = 0; i < parameters.size(); i++)
+        if (parameters.size() > ARGUMENTS)
         {
-            offsets.put(parameters.get(i), 4 * (parameters.size() - 1 - i));
+            throw tooManyArguments();
+        }
+
+        offsets.clear();
+        for (String parameter : parameters)
+        {
+            offsets.put(parameter, -12 - 4 * offsets.size());
         }
         for (Quadruple quadruple : body)
         {
@@ -101,10 +215,11 @@ public class RiscVEmitter
             {
                 if (isLocal(operand) && !offsets.containsKey(operand))
                 {
-                    offsets.put(operand, -12 - 4 * (offsets.size() - parameters.size()));
+                    offsets.put(operand, -12 - 4 * offsets.size());
                 }
             }
         }
+        exitLabel = "_exit_" + functions.get(header.result());
 
         text.append('\n');
         comment(header);
@@ -112,8 +227,12 @@ public class RiscVEmitter
         instruction("sw   ra, -4(sp)");
         instruction("sw   fp, -8(sp)");
         instruction("mv   fp, sp");
-        instruction("li   t6, " + (8 + 4 * (offsets.size() - parameters.size())));
+        instruction("li   t6, " + (8 + 4 * offsets.size()));
         instruction("sub  sp, sp, t6");
+        for (int i = 0; i < parameters.size(); i++)
+        {
+            store("a" + i, parameters.get(i));
+        }
 
         for (Quadruple quadruple : body.subList(1, body.size()))
         {
@@ -158,21 +277,11 @@ public class RiscVEmitter
             case "uminusf"    -> unary(q, "fmv.w.x ft0, t0", "fsgnjn.s ft1, ft0, ft0", "fmv.x.w t2, ft1");
             case "itof"       -> unary(q, "fcvt.s.w ft0, t0", "fmv.x.w t2, ft0");
             case "ftoi"       -> unary(q, "fmv.w.x ft0, t0", "fcvt.w.s t2, ft0, rtz");
-            case "param"      ->
-            {
-                load("t0", q.arg1());
-                instruction("addi sp, sp, -4");
-                instruction("sw   t0, 0(sp)");
-            }
+            case "param"      -> argument(q.arg1());
             case "call"       ->
             {
-                int arguments = Integer.parseInt(q.arg2());
-
                 instruction("jal  ra, " + functions.get(q.arg1()));
-                if (arguments > 0)
-                {
-                    instruction("addi sp, sp, " + 4 * arguments);
-                }
+                argumentCount = 0;
                 if (!q.result().isEmpty())
                 {
                     store("a0", q.result());
@@ -184,13 +293,39 @@ public class RiscVEmitter
                 {
                     load("a0", q.arg1());
                 }
+                instruction("j    " + exitLabel);
+            }
+            case "end_func"   ->
+            {
+                label(exitLabel);
                 epilogue();
             }
-            case "end_func"   -> epilogue();
             case "print_int"  -> systemCall(q.arg1(), 1);
             case "print_char" -> systemCall(q.arg1(), 11);
             case "halt"       -> systemCall("", 10);
+            case "read_int"   -> read(READ_INT, q.result());
+            case "read_char"  -> read(READ_CHAR, q.result());
+            case "read_str"   -> read(READ_STRING, q.result());
+            case "read_float" ->
+            {
+                // ponytail: ReadFloat stops the program on a line that is not a number, unlike read_int.
+                instruction("li   a7, 6");
+                instruction("ecall");
+                instruction("fmv.x.w t0, fa0");
+                store("t0", q.result());
+            }
             default           -> operation(q);
+        }
+    }
+
+    /** jal to the read routine, which leaves the value in a0; a read alone drops it. */
+    private void read(String routine, String result)
+    {
+        routines.add(routine);
+        instruction("jal  ra, " + routine);
+        if (!result.isEmpty())
+        {
+            store("a0", result);
         }
     }
 
@@ -286,6 +421,23 @@ public class RiscVEmitter
         instruction("mv   sp, fp");
         instruction("mv   fp, t0");
         instruction("ret");
+    }
+
+    /** param k of a call goes into a(k-1): the params of a call always come together, right before it. */
+    private void argument(String value)
+    {
+        if (argumentCount == ARGUMENTS)
+        {
+            throw tooManyArguments();
+        }
+        load("a" + argumentCount++, value);
+    }
+
+    // ponytail: a0-a7 only; a ninth argument would need the stack, and no program passes more than 7 plus this.
+    private static UnsupportedOperationException tooManyArguments()
+    {
+        return new UnsupportedOperationException("Una llamada lleva a lo sumo " + ARGUMENTS
+                + " argumentos (a0-a7), contando el objeto de un metodo.");
     }
 
     /* =================================================================
@@ -441,6 +593,10 @@ public class RiscVEmitter
             String cells = literal.codePoints().mapToObj(String::valueOf).collect(Collectors.joining(", "));
 
             data.append("    .word ").append(cells).append(", 0\n");
+        }
+        if (!routines.isEmpty())
+        {
+            data.append("_buffer:\n    .space ").append(BUFFER_BYTES).append('\n');
         }
         return data.toString();
     }
