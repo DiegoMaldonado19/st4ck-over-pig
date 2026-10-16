@@ -6,25 +6,16 @@ import com.dmaldonado.st4ck.over.pig.model.ast.Expression;
 import java.util.List;
 
 /**
- * The object a method runs on.
+ * The object a method runs on: this.x, this.m() or this alone.
  *
- * Written by the user, 'this' belongs to Proyecto 2 and is reported. The
- * builder also creates it (implicit = true) to run the attribute initializers
- * inside a constructor, where a parameter could shadow the attribute.
+ * The builder also creates one to run the attribute initializers inside a
+ * constructor, where a parameter could shadow the attribute.
  */
 public class ThisExpression extends Expression
 {
-    private final boolean implicit;
-
-    public ThisExpression(boolean implicit, int line, int column)
+    public ThisExpression(int line, int column)
     {
         super(line, column);
-        this.implicit = implicit;
-    }
-
-    public boolean isImplicit()
-    {
-        return implicit;
     }
 
     @Override

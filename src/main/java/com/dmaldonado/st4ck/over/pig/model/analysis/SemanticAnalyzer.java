@@ -1517,7 +1517,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         return typeCheck(node, node.getElementType());
     }
 
-    /** Written by the user, 'this' belongs to Proyecto 2; the builder's own is always valid. */
+    /** this is the object of the method it is written in. */
     @Override
     public DataType visitThisExpression(ThisExpression node)
     {
@@ -1525,11 +1525,6 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         {
             error(node, "'this' solo existe dentro de los metodos de una clase.", "this");
             return typeCheck(node, DataType.ERROR);
-        }
-        if (!node.isImplicit())
-        {
-            error(node, "El uso de 'this' se contempla en el Proyecto 2: quite 'this.' y use el "
-                    + "atributo por su nombre.", "this");
         }
         node.setStructName(currentClass.getName());
         return typeCheck(node, DataType.ESTRUCTURA);

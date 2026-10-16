@@ -313,7 +313,7 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
     /** this.name, reached through the object even where a parameter has the same name. */
     private static Expression attributeOf(String name, ParserRuleContext ctx)
     {
-        return new MemberAccessExpression(new ThisExpression(true, line(ctx), column(ctx)), name,
+        return new MemberAccessExpression(new ThisExpression(line(ctx), column(ctx)), name,
                 line(ctx), column(ctx));
     }
 
@@ -500,7 +500,7 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         }
 
         Expression current = ctx.THIS() != null
-                ? new MemberAccessExpression(new ThisExpression(false, line(ctx), column(ctx)),
+                ? new MemberAccessExpression(new ThisExpression(line(ctx), column(ctx)),
                         ctx.ID().getText(), line(ctx), column(ctx))
                 : new IdentifierExpression(ctx.ID().getText(), line(ctx), column(ctx));
 
@@ -835,7 +835,7 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
     @Override
     public AstNode visitPrimariaThis(ZParser.PrimariaThisContext ctx)
     {
-        return new ThisExpression(false, line(ctx), column(ctx));
+        return new ThisExpression(line(ctx), column(ctx));
     }
 
     @Override

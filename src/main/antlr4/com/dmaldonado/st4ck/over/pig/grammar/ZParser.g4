@@ -6,9 +6,10 @@ options { tokenVocab = ZLexer; }
  * Zetariano: una clase por archivo, sintaxis de Java.
  *
  * Reglas ya decididas:
- *   - 'private' y 'this' se aceptan en la gramatica solo para que el semantico
- *     los reporte con un mensaje que sugiere quitarlos: el encapsulamiento es
+ *   - 'private' se acepta en la gramatica solo para que el semantico lo
+ *     reporte con un mensaje que sugiere quitarlo: el encapsulamiento es
  *     del Proyecto 2 (aclaracion de la auxiliar, 22/09/2026)
+ *   - 'this' es el objeto del metodo: this.x, this.m() y this solo
  *   - dangling else: IF ... instruccion ( ELSE instruccion )? es voraz, asi el
  *     'else' queda con el 'if' mas cercano, como en Java
  *   - 'switch' con fallthrough: 'break' es opcional
