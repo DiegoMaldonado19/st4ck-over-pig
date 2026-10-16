@@ -549,7 +549,10 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
                 error(parameter, "El tipo '" + parameter.getTypeText() + "' del parametro '"
                         + parameter.getName() + "' no existe.", parameter.getTypeText());
             }
-            symbolTable.declare(parameterSymbol(parameter, node.getName()));
+            Symbol symbol = parameterSymbol(parameter, node.getName());
+
+            symbolTable.declare(symbol);
+            parameter.setSymbol(symbol);
         }
 
         // Las structuras locales van primero: la siguiente variable ya puede usarlas.

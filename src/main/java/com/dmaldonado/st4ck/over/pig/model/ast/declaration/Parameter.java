@@ -2,6 +2,7 @@ package com.dmaldonado.st4ck.over.pig.model.ast.declaration;
 
 import com.dmaldonado.st4ck.over.pig.model.ast.AstNode;
 import com.dmaldonado.st4ck.over.pig.model.ast.AstVisitor;
+import com.dmaldonado.st4ck.over.pig.model.symbols.Symbol;
 import com.dmaldonado.st4ck.over.pig.model.types.DataType;
 import java.util.List;
 
@@ -20,6 +21,9 @@ public class Parameter extends AstNode
     private final DataType type;
     private final int      rank;
     private final boolean  structMarker;
+
+    /** The symbol the body's uses of this parameter resolve to. Set by the semantic analyzer. */
+    private Symbol symbol;
 
     public Parameter(String name, String typeText, int rank, boolean structMarker, int line, int column)
     {
@@ -59,6 +63,16 @@ public class Parameter extends AstNode
     public DataType getType()
     {
         return type;
+    }
+
+    public Symbol getSymbol()
+    {
+        return symbol;
+    }
+
+    public void setSymbol(Symbol symbol)
+    {
+        this.symbol = symbol;
     }
 
     @Override

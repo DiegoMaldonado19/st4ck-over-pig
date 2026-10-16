@@ -236,7 +236,8 @@ public class CompilerPipeline
             // The new translation still grows phase by phase: what it lacks is shown, not failed.
             try
             {
-                List<Quadruple> code = new ThreeAddressGenerator().generate(root.ast());
+                List<Quadruple> code = new ThreeAddressGenerator(symbolTable)
+                        .generate(units.stream().map(Unit::ast).toList());
 
                 threeAddressCode = ThreeAddressPrinter.print(code);
                 assembly         = new RiscVEmitter().emit(code);

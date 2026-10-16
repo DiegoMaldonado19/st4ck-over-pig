@@ -43,18 +43,21 @@ import com.dmaldonado.st4ck.over.pig.model.ast.statement.PrintStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.ReturnStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.SwitchStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.WhileStatement;
+import com.dmaldonado.st4ck.over.pig.model.symbols.FunctionSymbol;
 import com.dmaldonado.st4ck.over.pig.model.symbols.Symbol;
 import com.dmaldonado.st4ck.over.pig.model.symbols.SymbolCategory;
+import com.dmaldonado.st4ck.over.pig.model.symbols.SymbolTable;
+import com.dmaldonado.st4ck.over.pig.model.symbols.VariableSymbol;
 import com.dmaldonado.st4ck.over.pig.model.types.DataType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
@@ -79,24 +82,52 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     private static final Map<String, String> NEGATED      = Map.of("<", ">=", ">", "<=", "<=", ">", ">=", "<",
                                                                    "==", "!=", "!=", "==");
 
+    /** main and the other helpers: no function of the program takes their names. */
+    private static final String MAIN            = "main";
+    private static final String CONCAT          = "__concat";
+    private static final String INT_TO_STRING   = "__int_to_str";
+    private static final String FLOAT_TO_STRING = "__float_to_str";
+    private static final String CHAR_TO_STRING  = "__char_to_str";
+    private static final String STRING_EQUALS   = "__str_eq";
+
     private final List<Quadruple>     code           = new ArrayList<>();
     /** The name each variable has in the code: its own, unless another variable already has it. */
     private final Map<Symbol, String> names          = new HashMap<>();
     private final Set<String>         globalNames    = new HashSet<>();
     private final Set<String>         localNames     = new HashSet<>();
-    /** The helper functions the program used: they go after main. */
-    private final Set<String>         helpers        = new LinkedHashSet<>();
+    /** The helper functions the program used, in the order it first did: they go after its functions. */
+    private final List<String>        helpers        = new ArrayList<>();
     private final Deque<String>       breakLabels    = new ArrayDeque<>();
     private final Deque<String>       continueLabels = new ArrayDeque<>();
+
+    /** The name each function has in the code, and every name already taken by one. */
+    private final Map<FunctionSymbol, String> functionNames  = new HashMap<>();
+    private final Set<String>                 takenFunctions = new HashSet<>(Set.of(MAIN, PRINT_STRING, CONCAT,
+            INT_TO_STRING, FLOAT_TO_STRING, CHAR_TO_STRING, STRING_EQUALS));
+    /** Every overload of each function: a name declared more than once carries its parameter types. */
+    private final SymbolTable                 symbolTable;
 
     private int      temporaryCount;
     private int      labelCount;
     /** Each language prints its booleans with its own words. */
     private Language language;
 
-    /** The .pig with MAIOR: its globals, then main, then the helpers it used. */
-    public List<Quadruple> generate(Program root)
+    /** The function being generated: what its return gives back takes its return type. */
+    private FunctionDeclaration function;
+
+    public ThreeAddressGenerator(SymbolTable symbolTable)
     {
+        this.symbolTable = symbolTable;
+    }
+
+    /**
+     * The imported files first and the .pig with MAIOR last: the globals,
+     * main, the functions of every file and then the helpers the program used.
+     */
+    public List<Quadruple> generate(List<Program> programs)
+    {
+        Program root = programs.get(programs.size() - 1);
+
         language = root.getLanguage();
 
         for (AstNode global : root.getGlobals())
@@ -110,7 +141,7 @@ public class ThreeAddressGenerator implements AstVisitor<String>
             }
         }
 
-        emit("func", "", "", "main");
+        emit("func", "", "", MAIN);
         for (AstNode global : root.getGlobals())
         {
             global.accept(this);
@@ -120,11 +151,20 @@ public class ThreeAddressGenerator implements AstVisitor<String>
             statement.accept(this);
         }
         emit("halt", "", "", "");
-        emit("end_func", "", "", "main");
+        emit("end_func", "", "", MAIN);
 
-        if (helpers.contains(PRINT_STRING))
+        for (Program program : programs)
         {
-            printStringFunction();
+            language = program.getLanguage();
+            for (FunctionDeclaration declaration : program.getFunctions())
+            {
+                declaration.accept(this);
+            }
+        }
+        // A helper may call another one, __float_to_str writes through __int_to_str: the list grows as it goes.
+        for (int i = 0; i < helpers.size(); i++)
+        {
+            helper(helpers.get(i));
         }
         return code;
     }
@@ -183,10 +223,28 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         throw pending(5, "clases");
     }
 
+    /** func f(p1, p2): ... end_func f, which is also the return of a function that reaches its end. */
     @Override
     public String visitFunctionDeclaration(FunctionDeclaration node)
     {
-        throw pending(4, "funciones");
+        String       name       = functionName(node.getSymbol());
+        List<String> parameters = new ArrayList<>();
+
+        localNames.clear();
+        function = node;
+        for (Parameter parameter : node.getParameters())
+        {
+            parameters.add(name(parameter.getSymbol()));
+        }
+
+        emit("func", String.join(",", parameters), "", name);
+        for (AstNode local : node.getLocalVariables())
+        {
+            local.accept(this);
+        }
+        node.getBody().accept(this);
+        emit("end_func", "", "", name);
+        return null;
     }
 
     @Override
@@ -325,10 +383,14 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         return node.getBody().accept(this);
     }
 
+    /** return v, as the type the function returns: 0 out of a decimalis function is 0.0. */
     @Override
     public String visitReturnStatement(ReturnStatement node)
     {
-        throw pending(4, "retorno de funciones");
+        Expression value = node.getValue();
+
+        emit("return", value == null ? "" : operand(value, function.getReturnType()), "", "");
+        return null;
     }
 
     @Override
@@ -364,18 +426,28 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     {
         switch (value.getComputedType())
         {
-            case NUMERUS  -> emit("print_int", value.accept(this), "", "");
-            case LITTERA  -> emit("print_char", value.accept(this), "", "");
-            case BOOLEANO -> printString(booleanText(value.accept(this)));
-            case TEXTUM   -> printString(value.accept(this));
-            default       -> throw pending(4, "impresion de decimales");
+            case NUMERUS   -> emit("print_int", value.accept(this), "", "");
+            case LITTERA   -> emit("print_char", value.accept(this), "", "");
+            case BOOLEANO  -> printString(booleanText(value.accept(this)));
+            case DECIMALIS -> printString(callHelper(FLOAT_TO_STRING, value.accept(this)));
+            default        -> printString(value.accept(this));
         }
     }
 
+    /** x << reads by the type of x; a bare << reads a line and drops it. */
     @Override
     public String visitInputStatement(InputStatement node)
     {
-        throw pending(4, "lectura de consola");
+        if (node.getTarget() == null)
+        {
+            emit("read_str", "", "", "");
+            return null;
+        }
+
+        String value = read(node.getTarget().getComputedType());
+
+        emit("=", value, "", variable(node.getTarget()));
+        return null;
     }
 
     /** A call or a read alone drops its value; x++ alone is just the increment, without a copy of x. */
@@ -385,6 +457,16 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         if (node.getExpression() instanceof IncrementExpression increment)
         {
             increment(increment.getTarget(), increment.getOperator());
+            return null;
+        }
+        if (node.getExpression() instanceof FunctionCallExpression call)
+        {
+            call(call.getFunction(), call.getArguments(), false);
+            return null;
+        }
+        if (node.getExpression() instanceof ReadExpression)
+        {
+            emit("read_str", "", "", "");
             return null;
         }
         node.getExpression().accept(this);
@@ -412,7 +494,10 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         }
         if (node.getComputedType() == DataType.TEXTUM)
         {
-            throw pending(4, "concatenacion de cadenas");
+            String left  = text(node.getLeft());
+            String right = text(node.getRight());
+
+            return callHelper(CONCAT, left, right);
         }
 
         DataType type   = node.getComputedType();
@@ -510,7 +595,35 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     @Override
     public String visitFunctionCallExpression(FunctionCallExpression node)
     {
-        throw pending(4, "llamadas a funciones");
+        return call(node.getFunction(), node.getArguments(), true);
+    }
+
+    /**
+     * Every argument first and then their params, together, right before the
+     * call: a call inside an argument never ends up between them (design,
+     * 4.4). Each one goes as its parameter's type, 2 into a decimalis is 2.0;
+     * an array goes as it is, its address.
+     */
+    private String call(FunctionSymbol callee, List<Expression> arguments, boolean wantResult)
+    {
+        List<String> values = new ArrayList<>();
+
+        for (int i = 0; i < arguments.size(); i++)
+        {
+            VariableSymbol parameter = callee.getParameters().get(i);
+
+            values.add(parameter.isArray() ? arguments.get(i).accept(this)
+                                           : operand(arguments.get(i), parameter.getType()));
+        }
+        for (String value : values)
+        {
+            emit("param", value, "", "");
+        }
+
+        String result = wantResult && callee.returnsValue() ? newTemporary() : "";
+
+        emit("call", functionName(callee), String.valueOf(values.size()), result);
+        return result.isEmpty() ? null : result;
     }
 
     @Override
@@ -554,10 +667,11 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         return result;
     }
 
+    /** leer() / readln(): its type is the one its destination expects. */
     @Override
     public String visitReadExpression(ReadExpression node)
     {
-        throw pending(4, "lectura de consola");
+        return read(node.getComputedType());
     }
 
     @Override
@@ -628,7 +742,11 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         }
     }
 
-    /** if a < b goto target, as floats when either side is a decimalis. */
+    /**
+     * if a < b goto target, as floats when either side is a decimalis. Two
+     * textum are equal by their characters, not by their address: __str_eq
+     * gives 1 or 0. Against null, a pointer compares as a number.
+     */
     private void compare(BinaryExpression node, String operator, String target)
     {
         DataType left  = node.getLeft().getComputedType();
@@ -636,7 +754,12 @@ public class ThreeAddressGenerator implements AstVisitor<String>
 
         if (left == DataType.TEXTUM && right == DataType.TEXTUM)
         {
-            throw pending(4, "comparacion de cadenas");
+            String first  = node.getLeft().accept(this);
+            String second = node.getRight().accept(this);
+            String equal  = callHelper(STRING_EQUALS, first, second);
+
+            emit("==".equals(operator) ? "if!=" : "if==", equal, "0", target);
+            return;
         }
 
         boolean  floating = left == DataType.DECIMALIS || right == DataType.DECIMALIS;
@@ -707,18 +830,59 @@ public class ThreeAddressGenerator implements AstVisitor<String>
      */
     private String name(Symbol symbol)
     {
-        return names.computeIfAbsent(symbol, key ->
-        {
-            String name = key.getName();
+        return names.computeIfAbsent(symbol, key -> declare(key.getName(), key.isGlobal()));
+    }
 
-            for (int n = 2; globalNames.contains(name) || localNames.contains(name)
-                    || RESERVED.matcher(name).matches(); n++)
+    /** A variable of the code, a helper's included: base, or base_2, base_3... when that one is taken. */
+    private String declare(String base, boolean global)
+    {
+        String name = unique(base, taken -> globalNames.contains(taken) || localNames.contains(taken)
+                || RESERVED.matcher(taken).matches());
+
+        (global ? globalNames : localNames).add(name);
+        return name;
+    }
+
+    /**
+     * The name a function has in the code: its own, Clase_metodo for a
+     * method, with its parameter types when it is overloaded
+     * (sumar__entero_entero), and _2, _3... when main, a helper or another
+     * function already has it.
+     */
+    private String functionName(FunctionSymbol function)
+    {
+        return functionNames.computeIfAbsent(function, key ->
+        {
+            // Clase.<atributos>, the method of the attribute initializers, is Clase_atributos.
+            StringBuilder base      = new StringBuilder(key.getName().replace('.', '_').replaceAll("[<>]", ""));
+            String        separator = "__";
+
+            if (symbolTable.lookupFunctions(key.getName()).size() > 1)
             {
-                name = key.getName() + "_" + n;
+                for (VariableSymbol parameter : key.getParameters())
+                {
+                    base.append(separator).append(parameter.isArray() ? "arr_" : "").append(parameter.getTypeText());
+                    separator = "_";
+                }
             }
-            (key.isGlobal() ? globalNames : localNames).add(name);
+
+            String name = unique(base.toString(), takenFunctions::contains);
+
+            takenFunctions.add(name);
             return name;
         });
+    }
+
+    /** base, or base_2, base_3...: the first one not taken. */
+    private static String unique(String base, Predicate<String> taken)
+    {
+        String name = base;
+
+        for (int n = 2; taken.test(name); n++)
+        {
+            name = base + "_" + n;
+        }
+        return name;
     }
 
     /* =================================================================
@@ -726,9 +890,61 @@ public class ThreeAddressGenerator implements AstVisitor<String>
      * ================================================================= */
     private void printString(String text)
     {
-        helpers.add(PRINT_STRING);
+        useHelper(PRINT_STRING);
         emit("param", text, "", "");
         emit("call", PRINT_STRING, "1", "");
+    }
+
+    /** param each argument and call the helper: the temporary that holds what it returns. */
+    private String callHelper(String helper, String... arguments)
+    {
+        String result = newTemporary();
+
+        useHelper(helper);
+        for (String argument : arguments)
+        {
+            emit("param", argument, "", "");
+        }
+        emit("call", helper, String.valueOf(arguments.length), result);
+        return result;
+    }
+
+    private void useHelper(String helper)
+    {
+        if (!helpers.contains(helper))
+        {
+            helpers.add(helper);
+        }
+    }
+
+    /** The value as a textum, for a +: each type through its own helper, a boolean through its word. */
+    private String text(Expression value)
+    {
+        String operand = value.accept(this);
+
+        return switch (value.getComputedType())
+        {
+            case NUMERUS   -> callHelper(INT_TO_STRING, operand);
+            case DECIMALIS -> callHelper(FLOAT_TO_STRING, operand);
+            case LITTERA   -> callHelper(CHAR_TO_STRING, operand);
+            case BOOLEANO  -> booleanText(operand);
+            default        -> operand;
+        };
+    }
+
+    /** A line of the console as the type that receives it: a bool is true when it is the language's word. */
+    private String read(DataType type)
+    {
+        String value = newTemporary();
+
+        emit(switch (type)
+        {
+            case NUMERUS   -> "read_int";
+            case DECIMALIS -> "read_float";
+            case LITTERA   -> "read_char";
+            default        -> "read_str";
+        }, "", "", value);
+        return type == DataType.BOOLEANO ? callHelper(STRING_EQUALS, value, "\"" + word(true) + "\"") : value;
     }
 
     /** verum or falsus, verdadero or falso, true or false: the words of the language being read. */
@@ -757,23 +973,261 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         };
     }
 
+    /* =================================================================
+     * Helpers: the functions the compiler writes in three address code
+     * (design, 5), only those the program used
+     * ================================================================= */
+
+    /** Its parameters are named as any variable: a global s would otherwise be read in place of its own. */
+    private void helper(String name)
+    {
+        localNames.clear();
+        switch (name)
+        {
+            case PRINT_STRING    -> printStringFunction();
+            case CONCAT          -> concatFunction();
+            case INT_TO_STRING   -> intToStringFunction();
+            case FLOAT_TO_STRING -> floatToStringFunction();
+            case CHAR_TO_STRING  -> charToStringFunction();
+            default              -> stringEqualsFunction();
+        }
+    }
+
     /** func __print_str(s): print_char each cell until the 0 that ends the text. */
     private void printStringFunction()
+    {
+        String text      = declare("s", false);
+        String loop      = newLabel();
+        String end       = newLabel();
+        String character = newTemporary();
+
+        emit("func", text, "", PRINT_STRING);
+        label(loop);
+        emit("=[]", HEAP, text, character);
+        emit("if==", character, "0", end);
+        emit("print_char", character, "", "");
+        emit("+", text, "1", text);
+        jump(loop);
+        label(end);
+        emit("return", "", "", "");
+        emit("end_func", "", "", PRINT_STRING);
+    }
+
+    /** func __concat(a, b): a and then b, copied from H on, and the 0 that ends them. */
+    private void concatFunction()
+    {
+        String first  = declare("a", false);
+        String second = declare("b", false);
+        String start  = newTemporary();
+
+        emit("func", first + "," + second, "", CONCAT);
+        emit("=", "H", "", start);
+        copyText(first);
+        copyText(second);
+        endText(start);
+        emit("end_func", "", "", CONCAT);
+    }
+
+    /** Each character of the text at source to heap[H], H after it, up to the 0 that it leaves out. */
+    private void copyText(String source)
     {
         String loop      = newLabel();
         String end       = newLabel();
         String character = newTemporary();
 
-        emit("func", "s", "", PRINT_STRING);
         label(loop);
-        emit("=[]", HEAP, "s", character);
+        emit("=[]", HEAP, source, character);
         emit("if==", character, "0", end);
-        emit("print_char", character, "", "");
-        emit("+", "s", "1", "s");
+        emit("[]=", "H", character, HEAP);
+        emit("+", "H", "1", "H");
+        emit("+", source, "1", source);
         jump(loop);
         label(end);
-        emit("return", "", "", "");
-        emit("end_func", "", "", PRINT_STRING);
+    }
+
+    /** The 0 that ends the text written up to H, and its start back to the caller. */
+    private void endText(String start)
+    {
+        emit("[]=", "H", "0", HEAP);
+        emit("+", "H", "1", "H");
+        emit("return", start, "", "");
+    }
+
+    /**
+     * func __int_to_str(n): the sign, then the digits counted first and
+     * written right to left, n % 10 each, so the text ends where it should.
+     */
+    private void intToStringFunction()
+    {
+        String number   = declare("n", false);
+        String start    = newTemporary();
+        String rest     = newTemporary();
+        String digits   = newTemporary();
+        String cell     = newTemporary();
+        String digit    = newTemporary();
+        String code     = newTemporary();
+        String positive = newLabel();
+        String count    = newLabel();
+        String write    = newLabel();
+
+        emit("func", number, "", INT_TO_STRING);
+        emit("=", "H", "", start);
+        emit("if>=", number, "0", positive);
+        emit("[]=", "H", "45", HEAP);
+        emit("+", "H", "1", "H");
+        // ponytail: -2147483648 has no positive in 32 bits and prints wrong; no program reaches it.
+        emit("uminus", number, "", number);
+        label(positive);
+        emit("=", number, "", rest);
+        emit("=", "0", "", digits);
+        label(count);
+        emit("+", digits, "1", digits);
+        emit("/", rest, "10", rest);
+        emit("if!=", rest, "0", count);
+        emit("+", "H", digits, cell);
+        emit("[]=", cell, "0", HEAP);
+        emit("+", cell, "1", "H");
+        label(write);
+        emit("-", cell, "1", cell);
+        emit("%", number, "10", digit);
+        emit("+", digit, "48", code);
+        emit("[]=", cell, code, HEAP);
+        emit("/", number, "10", number);
+        emit("if!=", number, "0", write);
+        emit("return", start, "", "");
+        emit("end_func", "", "", INT_TO_STRING);
+    }
+
+    /**
+     * func __float_to_str(f): the sign, the integer part through
+     * __int_to_str, a '.' over the 0 that ends it, and six decimals, rounded,
+     * without the zeros at their end: 2.0, 0.5, 4.833333.
+     *
+     * The decimals come out of the fraction counted in 2^-24ths, an integer,
+     * digit by digit as with n % 10: fraction * 1000000.0 in 32 bits would
+     * round 4.83333349 to 4.833334.
+     */
+    private void floatToStringFunction()
+    {
+        String value    = declare("f", false);
+        String start    = newTemporary();
+        String whole    = newTemporary();
+        String back     = newTemporary();
+        String fraction = newTemporary();
+        String scaled   = newTemporary();
+        String rest     = newTemporary();
+        String decimals = newTemporary();
+        String count    = newTemporary();
+        String digit    = newTemporary();
+        String cell     = newTemporary();
+        String code     = newTemporary();
+        String positive = newLabel();
+        String next     = newLabel();
+        String fits     = newLabel();
+        String trim     = newLabel();
+        String trimmed  = newLabel();
+        String write    = newLabel();
+
+        emit("func", value, "", FLOAT_TO_STRING);
+        emit("=", "H", "", start);
+        emit("iff>=", value, "0.0", positive);
+        emit("[]=", "H", "45", HEAP);
+        emit("+", "H", "1", "H");
+        emit("uminusf", value, "", value);
+        label(positive);
+        // ponytail: from 2^31 on the integer part saturates; no program prints numbers that large.
+        emit("ftoi", value, "", whole);
+        emit("itof", whole, "", back);
+        emit("-f", value, back, fraction);
+        emit("*f", fraction, "16777216.0", scaled);
+        emit("ftoi", scaled, "", rest);
+        emit("=", "0", "", decimals);
+        emit("=", "6", "", count);
+        label(next);
+        emit("*", rest, "10", rest);
+        emit("/", rest, "16777216", digit);
+        emit("%", rest, "16777216", rest);
+        emit("*", decimals, "10", decimals);
+        emit("+", decimals, digit, decimals);
+        emit("-", count, "1", count);
+        emit("if!=", count, "0", next);
+        // What is left past the sixth decimal rounds it up from half on: 2^23 of 2^24.
+        emit("if<", rest, "8388608", fits);
+        emit("+", decimals, "1", decimals);
+        emit("if<", decimals, "1000000", fits);
+        // 0.9999999 rounds up to the next integer.
+        emit("=", "0", "", decimals);
+        emit("+", whole, "1", whole);
+        label(fits);
+        useHelper(INT_TO_STRING);
+        emit("param", whole, "", "");
+        emit("call", INT_TO_STRING, "1", "");
+        emit("-", "H", "1", "H");
+        emit("[]=", "H", "46", HEAP);
+        emit("+", "H", "1", "H");
+        emit("=", "6", "", count);
+        label(trim);
+        emit("if==", count, "1", trimmed);
+        emit("%", decimals, "10", digit);
+        emit("if!=", digit, "0", trimmed);
+        emit("/", decimals, "10", decimals);
+        emit("-", count, "1", count);
+        jump(trim);
+        label(trimmed);
+        emit("+", "H", count, cell);
+        emit("[]=", cell, "0", HEAP);
+        emit("+", cell, "1", "H");
+        label(write);
+        emit("-", cell, "1", cell);
+        emit("%", decimals, "10", digit);
+        emit("+", digit, "48", code);
+        emit("[]=", cell, code, HEAP);
+        emit("/", decimals, "10", decimals);
+        emit("-", count, "1", count);
+        emit("if!=", count, "0", write);
+        emit("return", start, "", "");
+        emit("end_func", "", "", FLOAT_TO_STRING);
+    }
+
+    /** func __char_to_str(c): a text of one character. */
+    private void charToStringFunction()
+    {
+        String character = declare("c", false);
+        String start     = newTemporary();
+
+        emit("func", character, "", CHAR_TO_STRING);
+        emit("=", "H", "", start);
+        emit("[]=", "H", character, HEAP);
+        emit("+", "H", "1", "H");
+        endText(start);
+        emit("end_func", "", "", CHAR_TO_STRING);
+    }
+
+    /** func __str_eq(a, b): 1 when they have the same characters, 0 at the first one that differs. */
+    private void stringEqualsFunction()
+    {
+        String first     = declare("a", false);
+        String second    = declare("b", false);
+        String loop      = newLabel();
+        String different = newLabel();
+        String equal     = newLabel();
+        String mine      = newTemporary();
+        String theirs    = newTemporary();
+
+        emit("func", first + "," + second, "", STRING_EQUALS);
+        label(loop);
+        emit("=[]", HEAP, first, mine);
+        emit("=[]", HEAP, second, theirs);
+        emit("if!=", mine, theirs, different);
+        emit("if==", mine, "0", equal);
+        emit("+", first, "1", first);
+        emit("+", second, "1", second);
+        jump(loop);
+        label(different);
+        emit("return", "0", "", "");
+        label(equal);
+        emit("return", "1", "", "");
+        emit("end_func", "", "", STRING_EQUALS);
     }
 
     /* =================================================================
