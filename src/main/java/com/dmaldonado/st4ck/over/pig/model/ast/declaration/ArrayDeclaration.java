@@ -31,7 +31,7 @@ public class ArrayDeclaration extends AstNode
     /** Zetariano "new double[2]": the element type it is created with, which has to be the declared one. */
     private final String           createdTypeText;
 
-    /** The declared symbol, which knows its stack slot. Set by the semantic analyzer. */
+    /** The declared symbol. Set by the semantic analyzer. */
     private Symbol symbol;
 
     public ArrayDeclaration(String name, List<Expression> dimensions, int rank, String typeText,

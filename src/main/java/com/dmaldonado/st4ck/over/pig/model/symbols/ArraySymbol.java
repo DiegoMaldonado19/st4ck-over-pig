@@ -67,6 +67,6 @@ public class ArraySymbol extends Symbol
                 .map(size -> size < 0 ? "?" : String.valueOf(size))
                 .collect(Collectors.joining(" x "));
 
-        return "tamano = " + sizes + ", valores = " + valueCount + describeStorage();
+        return "tamano = " + sizes + ", valores = " + valueCount;
     }
 }

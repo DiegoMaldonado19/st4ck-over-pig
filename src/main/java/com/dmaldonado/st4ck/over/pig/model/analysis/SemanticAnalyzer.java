@@ -43,6 +43,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.statement.PrintStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.ReturnStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.SwitchStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.WhileStatement;
+import com.dmaldonado.st4ck.over.pig.model.codegen.RiscVEmitter;
 import com.dmaldonado.st4ck.over.pig.model.errors.ErrorManager;
 import com.dmaldonado.st4ck.over.pig.model.symbols.ArraySymbol;
 import com.dmaldonado.st4ck.over.pig.model.symbols.FunctionSymbol;
@@ -69,9 +70,8 @@ import java.util.stream.Collectors;
  * One instance per Program. The pipeline runs the imported .y files first and
  * the .pig last, all on the same SymbolTable, so the .pig sees what they declare.
  *
- * Besides checking, it leaves on the AST what the quadruple generator needs:
- * the symbol behind each name (and so its stack slot), the overload each call
- * resolved to, and the size of every frame.
+ * Besides checking, it leaves on the AST what the three address generator
+ * needs: the symbol behind each name and the overload each call resolved to.
  */
 public class SemanticAnalyzer implements AstVisitor<DataType>
 {
@@ -156,12 +156,12 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             function.accept(this);
         }
 
-        symbolTable.openFrame("MAIOR");
+        symbolTable.openScope("MAIOR");
         for (AstNode statement : node.getMainStatements())
         {
             statement.accept(this);
         }
-        node.setFrameSize(symbolTable.closeFrame());
+        symbolTable.closeScope();
         return DataType.VOID;
     }
 
@@ -498,7 +498,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         loopDepth             = 0;
         switchDepth           = 0;
 
-        symbolTable.openFrame(node.getName());
+        symbolTable.openScope(node.getName());
 
         if (node.returnsValue())
         {
@@ -512,7 +512,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
                     node.getReturnTypeText());
         }
 
-        // A method receives its object in slot 1, ahead of the parameters.
+        // A method receives its object first, ahead of the parameters.
         if (node.getOwnerClass() != null)
         {
             symbolTable.declare(new VariableSymbol("this", DataType.ESTRUCTURA, node.getOwnerClass(),
@@ -520,8 +520,6 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
                     node.getLine(), node.getColumn()));
         }
 
-        // Los parametros se declaran primero: ocupan los slots 1..n del marco,
-        // que es donde el llamador escribe los argumentos.
         for (Parameter parameter : node.getParameters())
         {
             if (symbolTable.lookupLocal(parameter.getName()) != null)
@@ -555,6 +553,19 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             parameter.setSymbol(symbol);
         }
 
+        // RISC-V passes the arguments in a0-a7, the object of a method first: one more has no register.
+        int registers = RiscVEmitter.ARGUMENTS - (node.getOwnerClass() == null ? 0 : 1);
+
+        if (node.getParameters().size() > registers)
+        {
+            Parameter extra = node.getParameters().get(registers);
+
+            error(extra, (node.isConstructor() ? "El constructor" : functionWord(node, true)) + " '" + node.getName()
+                    + "' recibe " + node.getParameters().size() + " parametros"
+                    + (node.getOwnerClass() == null ? "" : " y el objeto") + ": RISC-V pasa a lo sumo "
+                    + RiscVEmitter.ARGUMENTS + " argumentos en registros (a0-a7).", extra.getName());
+        }
+
         // Las structuras locales van primero: la siguiente variable ya puede usarlas.
         for (AstNode local : node.getLocalVariables())
         {
@@ -581,13 +592,8 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         // una local no puede llamarse igual que uno de ellos.
         declarationsForbidden = true;
         visitStatements(node.getBody());
+        symbolTable.closeScope();
 
-        int frameSize = symbolTable.closeFrame();
-
-        if (node.getSymbol() != null)
-        {
-            node.getSymbol().setFrameSize(frameSize);
-        }
         if (node.returnsValue() && !ReturnPathChecker.alwaysReturns(node.getBody()))
         {
             error(node, functionWord(node, true) + " '" + node.getName()
@@ -1014,15 +1020,15 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     @Override
     public DataType visitLiteralExpression(LiteralExpression node)
     {
-        // C keeps an entero in an int: a longer literal would wrap around there.
+        // A numerus is a 32 bit word: a longer literal would wrap around.
         if (node.getType() == DataType.NUMERUS && extractInteger(node) == null)
         {
             error(node, "El entero " + node.getText() + " excede el rango permitido (hasta 2147483647).",
                     node.getText());
             return typeCheck(node, DataType.ERROR);
         }
-        // Memory holds a double: a larger decimal would be infinity there.
-        if (node.getType() == DataType.DECIMALIS && Double.isInfinite(Double.parseDouble(node.getText())))
+        // A decimalis is a 32 bit float: a larger decimal would be infinity.
+        if (node.getType() == DataType.DECIMALIS && Float.isInfinite(Float.parseFloat(node.getText())))
         {
             error(node, "El decimal " + node.getText() + " excede el rango permitido.", node.getText());
             return typeCheck(node, DataType.ERROR);

@@ -15,9 +15,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.Language;
 import com.dmaldonado.st4ck.over.pig.model.ast.declaration.ClassDeclaration;
 import com.dmaldonado.st4ck.over.pig.model.ast.declaration.ImportDeclaration;
 import com.dmaldonado.st4ck.over.pig.model.ast.declaration.Program;
-import com.dmaldonado.st4ck.over.pig.model.codegen.CEmitter;
 import com.dmaldonado.st4ck.over.pig.model.codegen.Quadruple;
-import com.dmaldonado.st4ck.over.pig.model.codegen.QuadrupleGenerator;
 import com.dmaldonado.st4ck.over.pig.model.codegen.RiscVEmitter;
 import com.dmaldonado.st4ck.over.pig.model.codegen.ThreeAddressGenerator;
 import com.dmaldonado.st4ck.over.pig.model.codegen.ThreeAddressPrinter;
@@ -85,13 +83,12 @@ public class CompilerPipeline
      * @param symbolTable  empty when the AST was never built.
      * @param steps        empty only when the file was never parsed at all.
      * @param quadruples   the three address code: empty unless the program is valid and has a main.
-     * @param cCode        the C of the P1 generator, or "": it goes away in Fase 6.
-     * @param threeAddressCode the quadruples as text, what RISC-V cannot take of them, or "".
+     * @param threeAddressCode the quadruples as text, or "".
      * @param assembly     their RISC-V translation, or "".
      */
     public record CompilationResult(Program ast, SymbolTable symbolTable, List<ProcessStep> steps,
                                     List<CompilerError> errors, List<Quadruple> quadruples,
-                                    String cCode, String threeAddressCode, String assembly)
+                                    String threeAddressCode, String assembly)
     {
         /** Only a valid program may be graphed and translated. */
         public boolean isValid()
@@ -144,7 +141,7 @@ public class CompilerPipeline
         errorManager.setSource(sourcePath == null ? "" : sourcePath.getFileName().toString());
         report.accept(errorManager);
         return new CompilationResult(null, new SymbolTable(), List.of(), errorManager.getErrors(), List.of(), "",
-                "", "");
+                "");
     }
 
     private CompilationResult compileSource(String source, Path sourcePath)
@@ -162,7 +159,7 @@ public class CompilerPipeline
         if (root.ast() == null)
         {
             return new CompilationResult(null, symbolTable, root.steps(), errorManager.getErrors(),
-                    List.of(), "", "", "");
+                    List.of(), "", "");
         }
 
         checkClassName(root.ast(), fileName, errorManager);
@@ -176,7 +173,7 @@ public class CompilerPipeline
         if (errorManager.hasErrorsOf(ErrorType.LEXICAL))
         {
             return new CompilationResult(root.ast(), symbolTable, root.steps(), errorManager.getErrors(),
-                    List.of(), "", "", "");
+                    List.of(), "", "");
         }
 
         // Dos pasadas sobre TODOS los archivos: primero se registra lo que cada
@@ -221,7 +218,6 @@ public class CompilerPipeline
         errorManager.setSource(fileName);
 
         List<Quadruple> quadruples       = List.of();
-        String          cCode            = "";
         String          threeAddressCode = "";
         String          assembly         = "";
 
@@ -231,22 +227,12 @@ public class CompilerPipeline
         {
             List<Program> programs = units.stream().map(Unit::ast).toList();
 
-            cCode = CEmitter.emit(new QuadrupleGenerator().generate(programs, symbolTable.getGlobalSize()));
-
-            // What RISC-V cannot take, a call with more than eight arguments, is shown, not failed.
-            try
-            {
-                quadruples       = new ThreeAddressGenerator(symbolTable).generate(programs);
-                threeAddressCode = ThreeAddressPrinter.print(quadruples);
-                assembly         = new RiscVEmitter().emit(quadruples);
-            }
-            catch (UnsupportedOperationException limit)
-            {
-                threeAddressCode = "// " + limit.getMessage();
-            }
+            quadruples       = new ThreeAddressGenerator(symbolTable).generate(programs);
+            threeAddressCode = ThreeAddressPrinter.print(quadruples);
+            assembly         = new RiscVEmitter().emit(quadruples);
         }
         return new CompilationResult(root.ast(), symbolTable, root.steps(), errorManager.getErrors(),
-                quadruples, cCode, threeAddressCode, assembly);
+                quadruples, threeAddressCode, assembly);
     }
 
     /* =================================================================

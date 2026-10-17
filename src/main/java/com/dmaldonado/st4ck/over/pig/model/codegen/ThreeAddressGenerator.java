@@ -155,6 +155,7 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         }
         language = root.getLanguage();
 
+        // VARIABILES> of the .pig holds the only globals: they are named here, before any local.
         for (AstNode global : root.getGlobals())
         {
             Symbol symbol = global instanceof VariableDeclaration variable ? variable.getSymbol()
@@ -162,7 +163,7 @@ public class ThreeAddressGenerator implements AstVisitor<String>
 
             if (symbol != null)
             {
-                emit("global", "", "", name(symbol));
+                emit("global", "", "", names.computeIfAbsent(symbol, key -> declare(key.getName(), true)));
             }
         }
 
@@ -970,11 +971,11 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     /**
      * The name a variable has in the code: its own, unless a global, another
      * local of the same function or a reserved name already has it, in which
-     * case it gets _2, _3...
+     * case it gets _2, _3... The globals were named first, by generate().
      */
     private String name(Symbol symbol)
     {
-        return names.computeIfAbsent(symbol, key -> declare(key.getName(), key.isGlobal()));
+        return names.computeIfAbsent(symbol, key -> declare(key.getName(), false));
     }
 
     /** A variable of the code, a helper's included: base, or base_2, base_3... when that one is taken. */

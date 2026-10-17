@@ -42,6 +42,6 @@ public class VariableSymbol extends Symbol {
     @Override
     public String getDetail() {
         String detail = initialized ? "inicializada" : "sin valor inicial";
-        return (isArray() ? "arreglo, " + detail : detail) + describeStorage();
+        return isArray() ? "arreglo, " + detail : detail;
     }
 }

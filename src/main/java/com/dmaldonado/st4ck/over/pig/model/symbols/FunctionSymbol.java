@@ -22,9 +22,6 @@ public class FunctionSymbol extends Symbol
     private final String               ownerClass;
     private final boolean              constructor;
 
-    /** Stack slots of its frame: return value, parameters and locals. Known once its body is analyzed. */
-    private int                        frameSize;
-
     public FunctionSymbol(String name, DataType returnType, String typeText, String scopeName,
                           List<VariableSymbol> parameters, boolean returnsValue,
                           String returnStructName, String ownerClass, boolean constructor,
@@ -75,16 +72,6 @@ public class FunctionSymbol extends Symbol
         return parameters.size();
     }
 
-    public int getFrameSize()
-    {
-        return frameSize;
-    }
-
-    public void setFrameSize(int frameSize)
-    {
-        this.frameSize = frameSize;
-    }
-
     /**
      * Two overloads clash when their parameters have the same types, compared
      * by DataType and not by text: f(entero) in Y? and f(numerus) in PigLatin
@@ -110,10 +97,7 @@ public class FunctionSymbol extends Symbol
         return true;
     }
 
-    /**
-     * Signature used in error messages, calcularPoder(numerus, [] entero), and
-     * by the generator to give every overload its own C name.
-     */
+    /** Signature used in error messages and in the symbol table: calcularPoder(numerus, [] entero). */
     public String getSignature()
     {
         return getName() + "(" + parameters.stream()
@@ -125,6 +109,6 @@ public class FunctionSymbol extends Symbol
     @Override
     public String getDetail()
     {
-        return getSignature() + (frameSize > 0 ? ", marco = " + frameSize : "");
+        return getSignature();
     }
 }

@@ -16,7 +16,7 @@ public class VariableDeclaration extends AstNode
     private final DataType   type;
     private final Expression initialValue;
 
-    /** The declared symbol, which knows its stack slot. Set by the semantic analyzer. */
+    /** The declared symbol. Set by the semantic analyzer. */
     private Symbol symbol;
 
     public VariableDeclaration(String name, String typeText, Expression initialValue,

@@ -26,8 +26,8 @@ public class RiscVEmitter
 {
     /** RARS gives sbrk about 3.75 MiB: 3 MiB are 786 432 cells. */
     private static final int                 HEAP_BYTES  = 3 * 1024 * 1024;
-    /** a0-a7 carry the arguments of a call. */
-    private static final int                 ARGUMENTS   = 8;
+    /** a0-a7 carry the arguments of a call: the analyzer rejects a function that needs more. */
+    public static final int                  ARGUMENTS   = 8;
     private static final String              HEAP        = "heap";
     private static final Pattern             INTEGER     = Pattern.compile("-?\\d+");
     private static final Pattern             DECIMAL     = Pattern.compile("-?\\d+\\.\\d*");

@@ -15,10 +15,6 @@ import java.util.Map;
  *
  * Las funciones no viven en los ambitos: tienen su propio espacio de nombres,
  * asi dos sobrecargas no chocan entre si ni con una structura homonima.
- *
- * Tambien reparte el stack: cada variable recibe su slot al declararse. Las
- * globales cuentan desde stack[0]; dentro de un marco (una funcion o MAIOR)
- * se cuenta desde 1, porque stack[P] guarda el valor de retorno.
  */
 public class SymbolTable
 {
@@ -27,11 +23,7 @@ public class SymbolTable
     private final List<Symbol>                      allSymbols   = new ArrayList<>();
     private final Map<String, List<FunctionSymbol>> functions    = new LinkedHashMap<>();
 
-    private int globalSize;
-    /** Next free slot of the frame being analyzed. Frames never nest, so one counter is enough. */
-    private int nextSlot;
-
-    /* ----------------- Scopes and frames ----------------- */
+    /* ----------------- Scopes ----------------- */
 
     public void openScope(String name)
     {
@@ -44,20 +36,6 @@ public class SymbolTable
         {
             currentScope = currentScope.getParent();
         }
-    }
-
-    /** A function body or MAIOR. Nested scopes inside it keep counting, so no slot is reused. */
-    public void openFrame(String name)
-    {
-        openScope(name);
-        nextSlot = 1;
-    }
-
-    /** @return the size of the frame just closed. */
-    public int closeFrame()
-    {
-        closeScope();
-        return nextSlot;
     }
 
     public String getCurrentScopeName()
@@ -75,14 +53,6 @@ public class SymbolTable
         if (added)
         {
             allSymbols.add(symbol);
-
-            // An attribute declared in a class scope lives in the object, not in the stack.
-            if ((symbol instanceof VariableSymbol || symbol instanceof ArraySymbol)
-                    && symbol.getCategory() != SymbolCategory.ATTRIBUTE)
-            {
-                boolean global = currentScope == globalScope;
-                symbol.setStorage(global ? globalSize++ : nextSlot++, global);
-            }
         }
         return added;
     }
@@ -136,11 +106,5 @@ public class SymbolTable
     public List<Symbol> getAllSymbols()
     {
         return allSymbols;
-    }
-
-    /** Slots taken by the globals: MAIOR's frame starts right after them. */
-    public int getGlobalSize()
-    {
-        return globalSize;
     }
 }

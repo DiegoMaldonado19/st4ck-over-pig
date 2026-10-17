@@ -19,10 +19,6 @@ public abstract class Symbol
     private final int            line;
     private final int            column;
 
-    /** Stack slot, assigned by SymbolTable.declare: absolute for a global, relative to P otherwise; -1 when it has none. */
-    private int                  offset = -1;
-    private boolean              global;
-
     protected Symbol(String name, DataType type, String typeText, SymbolCategory category,
                      String scopeName, int line, int column)
     {
@@ -74,31 +70,5 @@ public abstract class Symbol
     public String getDetail()
     {
         return "";
-    }
-
-    public int getOffset()
-    {
-        return offset;
-    }
-
-    public boolean isGlobal()
-    {
-        return global;
-    }
-
-    void setStorage(int offset, boolean global)
-    {
-        this.offset = offset;
-        this.global = global;
-    }
-
-    /** stack[3] for a global, stack[P+3] for a local: the stack made visible in the table. */
-    protected String describeStorage()
-    {
-        if (offset < 0)
-        {
-            return "";
-        }
-        return global ? ", stack[" + offset + "]" : ", stack[P+" + offset + "]";
     }
 }

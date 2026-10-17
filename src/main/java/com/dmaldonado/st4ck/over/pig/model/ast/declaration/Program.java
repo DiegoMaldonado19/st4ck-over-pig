@@ -18,9 +18,6 @@ public class Program extends AstNode
     private final List<FunctionDeclaration> functions;
     private final List<AstNode>             mainStatements;
 
-    /** Stack slots of the MAIOR frame. The semantic analyzer sets it; the generator reads it. */
-    private int frameSize;
-
     public Program(Language language, List<ImportDeclaration> imports, List<AstNode> globals,
                    List<FunctionDeclaration> functions, List<AstNode> mainStatements,
                    int line, int column)
@@ -56,16 +53,6 @@ public class Program extends AstNode
     public List<AstNode> getMainStatements()
     {
         return mainStatements;
-    }
-
-    public int getFrameSize()
-    {
-        return frameSize;
-    }
-
-    public void setFrameSize(int frameSize)
-    {
-        this.frameSize = frameSize;
     }
 
     @Override
