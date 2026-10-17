@@ -43,15 +43,14 @@ public final class MainView extends BorderPane {
     private final TreeView<AstNode> astTree = new TreeView<>();
     private final ProcessStackPanel stackPanel = new ProcessStackPanel();
     private final TableView<Quadruple> quadrupleTable = new TableView<>();
-    private final TextArea generatedC  = new TextArea();
     private final TextArea threeAddressCode = new TextArea();
     private final TextArea assembly    = new TextArea();
     private final TabPane tabs = new TabPane();
 
     // Como campos y no como indices: reordenar las pestanas no puede mandar al
     // usuario a la equivocada.
-    private final Tab errorTab = new Tab("Errores", errorTable);
-    private final Tab codeTab  = new Tab("Codigo C", generatedC);
+    private final Tab errorTab    = new Tab("Errores", errorTable);
+    private final Tab assemblyTab = new Tab("RISC-V", assembly);
 
     private final Button openFolderButton = new Button("Abrir carpeta");
     private final Button newButton = new Button("Nuevo archivo");
@@ -62,7 +61,6 @@ public final class MainView extends BorderPane {
     private final Button saveAllButton = new Button("Guardar todo");
     private final Button exportFolderButton = new Button("Descargar carpeta");
     private final Button compileButton = new Button("Compilar");
-    private final Button exportButton = new Button("Descargar .c");
     private final Button exportAssemblyButton = new Button("Descargar .asm");
     private final Button exportTreeButton = new Button("Exportar arbol");
 
@@ -75,13 +73,12 @@ public final class MainView extends BorderPane {
         buildQuadrupleTable();
         buildTrees();
 
-        for (TextArea output : List.of(generatedC, threeAddressCode, assembly))
+        for (TextArea output : List.of(threeAddressCode, assembly))
         {
             output.setEditable(false);
             output.getStyleClass().add("code-output");
         }
-        exportButton.setDisable(true); // nothing valid has been compiled yet
-        exportAssemblyButton.setDisable(true);
+        exportAssemblyButton.setDisable(true); // nothing valid has been compiled yet
         exportTreeButton.setDisable(true);
 
         statusLabel.setPadding(new Insets(6, 12, 6, 12));
@@ -105,7 +102,7 @@ public final class MainView extends BorderPane {
 
         return new ToolBar(openFolderButton, newButton, newFolderButton, openButton, new Separator(),
                 saveButton, saveAsButton, saveAllButton, exportFolderButton, new Separator(),
-                compileButton, new Separator(), exportButton, exportAssemblyButton, exportTreeButton, spacer, fileLabel);
+                compileButton, new Separator(), exportAssemblyButton, exportTreeButton, spacer, fileLabel);
     }
 
     /** Folder tree | open files | results, left to right. */
@@ -118,8 +115,7 @@ public final class MainView extends BorderPane {
                 new Tab("Pila de procesos", stackPanel),
                 new Tab("Cuartetas", quadrupleTable),
                 new Tab("Codigo 3D", threeAddressCode),
-                codeTab,
-                new Tab("RISC-V", assembly));
+                assemblyTab);
 
         SplitPane split = new SplitPane(workspaceTree, editors, tabs);
         split.setDividerPositions(0.16, 0.56);
@@ -271,10 +267,6 @@ public final class MainView extends BorderPane {
         return editor;
     }
 
-    public void showGeneratedC(String cCode) {
-        generatedC.setText(cCode);
-    }
-
     public void showThreeAddressCode(String code)
     {
         threeAddressCode.setText(code);
@@ -306,7 +298,7 @@ public final class MainView extends BorderPane {
 
     /** Adelanta lo que el usuario necesita: los errores, o el resultado. */
     public void showResultTab(boolean successful) {
-        tabs.getSelectionModel().select(successful ? codeTab : errorTab);
+        tabs.getSelectionModel().select(successful ? assemblyTab : errorTab);
     }
 
     /*
@@ -314,10 +306,6 @@ public final class MainView extends BorderPane {
      * Accessors for the controller
      * ================================================================
      */
-
-    public String getGeneratedCText() {
-        return generatedC.getText();
-    }
 
     public String getAssemblyText()
     {
@@ -402,10 +390,6 @@ public final class MainView extends BorderPane {
 
     public Button getCompileButton() {
         return compileButton;
-    }
-
-    public Button getExportButton() {
-        return exportButton;
     }
 
     public Button getExportAssemblyButton()

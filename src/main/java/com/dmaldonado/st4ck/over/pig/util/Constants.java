@@ -16,13 +16,10 @@ public final class Constants
     /** Los tres lenguajes que el editor abre y colorea. */
     public static final List<String> SOURCE_EXTENSIONS = List.of("pig", "y", "z");
 
-    /** La salida del compilador: C compilable con gcc. */
-    public static final String OUTPUT_EXTENSION = "c";
-
     /** The RISC-V translation, for RARS. */
     public static final String ASSEMBLY_EXTENSION = "asm";
 
-    public static final String APP_TITLE = "St4ck Over-Pig";
+    public static final String APP_TITLE = "St4ck Over-Pig - Compilador a RISC-V";
 
     private Constants()
     {

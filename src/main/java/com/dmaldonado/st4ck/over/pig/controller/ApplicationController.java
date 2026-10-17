@@ -68,7 +68,6 @@ public class ApplicationController
         view.getSaveAllButton().setOnAction(event -> saveAll());
         view.getExportFolderButton().setOnAction(event -> exportFolder());
         view.getCompileButton().setOnAction(event -> compile());
-        view.getExportButton().setOnAction(event -> exportGeneratedC());
         view.getExportAssemblyButton().setOnAction(event -> exportAssembly());
         view.getExportTreeButton().setOnAction(event -> exportTree());
         view.getEditorTabs().getSelectionModel().selectedItemProperty()
@@ -159,14 +158,12 @@ public class ApplicationController
         // errores: se limpian ambos paneles en vez de dejar uno viejo en pantalla.
         view.showAst(lastResult.isValid() ? AstTreeBuilder.build(lastResult.ast()) : null);
         view.showQuadruples(lastResult.quadruples());
-        view.showGeneratedC(lastResult.cCode());
         view.showThreeAddressCode(lastResult.threeAddressCode());
         view.showAssembly(lastResult.assembly());
 
-        // Un .y o un .z valido no trae C: no tiene MAIOR que ejecutar.
-        boolean translated = !lastResult.cCode().isEmpty();
-        view.getExportButton().setDisable(!translated);
-        view.getExportAssemblyButton().setDisable(lastResult.assembly().isEmpty());
+        // Un .y o un .z valido no se traduce: no tiene MAIOR que ejecutar.
+        boolean translated = !lastResult.assembly().isEmpty();
+        view.getExportAssemblyButton().setDisable(!translated);
 
         // La pila se muestra compile o no: el archivo invalido es justo aquel
         // cuyos pasos ERROR hay que leer.
@@ -392,23 +389,6 @@ public class ApplicationController
         if (copy != null)
         {
             view.setStatus("Carpeta descargada en " + copy);
-        }
-    }
-
-    private void exportGeneratedC()
-    {
-        if (lastResult == null || lastResult.cCode().isEmpty())
-        {
-            return;
-        }
-
-        // lo que el usuario ve, junto al archivo que lo produjo
-        Path saved = files.saveOutput(compiled.getPath(), view.getGeneratedCText(), Constants.OUTPUT_EXTENSION);
-
-        if (saved != null)
-        {
-            refreshWorkspace();
-            view.setStatus("Codigo C descargado en " + saved.toAbsolutePath());
         }
     }
 
