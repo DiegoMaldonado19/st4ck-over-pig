@@ -2,6 +2,7 @@ package com.dmaldonado.st4ck.over.pig.model.ast.declaration;
 
 import com.dmaldonado.st4ck.over.pig.model.ast.AstNode;
 import com.dmaldonado.st4ck.over.pig.model.ast.AstVisitor;
+import com.dmaldonado.st4ck.over.pig.model.symbols.Visibility;
 import com.dmaldonado.st4ck.over.pig.model.types.DataType;
 import java.util.List;
 
@@ -14,29 +15,33 @@ import java.util.List;
  */
 public class StructField extends AstNode
 {
-    private final String   name;
-    private final String   typeText;
-    private final DataType type;
-    private final boolean  array;
+    private final String     name;
+    private final String     typeText;
+    private final DataType   type;
+    private final boolean    array;
     /** -1 when the field is not an array or its size is given later. */
-    private final int      size;
+    private final int        size;
     /** Dimensions: 0 for a value, 1 for an array; Zetariano can write more (int[][] m). */
-    private final int      rank;
+    private final int        rank;
+    /** Only a Zetariano attribute can write one: a structure field is always DEFAULT. */
+    private final Visibility visibility;
 
     public StructField(String name, String typeText, boolean array, int size, int line, int column)
     {
-        this(name, typeText, array ? 1 : 0, size, line, column);
+        this(name, typeText, array ? 1 : 0, size, Visibility.DEFAULT, line, column);
     }
 
-    public StructField(String name, String typeText, int rank, int size, int line, int column)
+    public StructField(String name, String typeText, int rank, int size, Visibility visibility, int line,
+                       int column)
     {
         super(line, column);
-        this.name     = name;
-        this.typeText = typeText;
-        this.type     = DataType.fromText(typeText);
-        this.array    = rank > 0;
-        this.size     = size;
-        this.rank     = rank;
+        this.name       = name;
+        this.typeText   = typeText;
+        this.type       = DataType.fromText(typeText);
+        this.array      = rank > 0;
+        this.size       = size;
+        this.rank       = rank;
+        this.visibility = visibility;
     }
 
     public int getSize()
@@ -67,6 +72,11 @@ public class StructField extends AstNode
     public boolean isArray()
     {
         return array;
+    }
+
+    public Visibility getVisibility()
+    {
+        return visibility;
     }
 
     @Override

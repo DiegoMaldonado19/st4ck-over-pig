@@ -6,9 +6,12 @@ lexer grammar ZLexer;
  */
 
 /* ---------- 1. Palabras reservadas ---------------------------------- */
+// Encapsulamiento
+PUBLIC    : 'public' ;
+PRIVATE   : 'private' ;
+PROTECTED : 'protected' ;
+
 // Estructura del programa
-PUBLIC  : 'public' ;
-PRIVATE : 'private' ;                // se reconoce para reportarlo: el encapsulamiento es del Proyecto 2
 CLASS   : 'class' ;
 VOID    : 'void' ;
 RETURN  : 'return' ;

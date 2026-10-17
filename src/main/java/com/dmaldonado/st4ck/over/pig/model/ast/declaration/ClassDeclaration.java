@@ -12,25 +12,20 @@ import java.util.List;
  * attributes are kept as one: field access, identity and passing by reference
  * reuse what structures already do. Constructors and methods are functions
  * whose owner is this class; they receive the object in the first slot.
- *
- * privateMembers keeps what was written 'private': encapsulation belongs to
- * Proyecto 2, so today the analyzer only reports it.
  */
 public class ClassDeclaration extends AstNode
 {
     private final String                    name;
     private final StructDeclaration         layout;
     private final List<FunctionDeclaration> methods;
-    private final List<AstNode>             privateMembers;
 
     public ClassDeclaration(String name, StructDeclaration layout, List<FunctionDeclaration> methods,
-                            List<AstNode> privateMembers, int line, int column)
+                            int line, int column)
     {
         super(line, column);
         this.name           = name;
         this.layout         = layout;
         this.methods        = methods;
-        this.privateMembers = privateMembers;
     }
 
     public String getName()
@@ -48,11 +43,6 @@ public class ClassDeclaration extends AstNode
     public List<FunctionDeclaration> getMethods()
     {
         return methods;
-    }
-
-    public List<AstNode> getPrivateMembers()
-    {
-        return privateMembers;
     }
 
     @Override

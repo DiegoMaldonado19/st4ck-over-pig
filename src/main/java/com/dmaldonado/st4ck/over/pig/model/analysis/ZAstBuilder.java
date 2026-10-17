@@ -47,6 +47,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.statement.PrintStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.ReturnStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.SwitchStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.WhileStatement;
+import com.dmaldonado.st4ck.over.pig.model.symbols.Visibility;
 import com.dmaldonado.st4ck.over.pig.model.types.DataType;
 import java.util.ArrayList;
 import java.util.List;
@@ -105,7 +106,6 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         List<StructField>         fields       = new ArrayList<>();
         List<AstNode>             initializers = new ArrayList<>();
         List<FunctionDeclaration> methods      = new ArrayList<>();
-        List<AstNode>             privates     = new ArrayList<>();
 
         for (ZParser.MiembroContext member : ctx.miembro())
         {
@@ -121,17 +121,12 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
             {
                 methods.add(method);
             }
-            if (built != null && member.getChild(0) instanceof ZParser.VisibilidadContext visibility
-                    && visibility.PRIVATE() != null)
-            {
-                privates.add(built);
-            }
         }
 
         List<FunctionDeclaration> members = withInitializers(methods, initializers, ctx);
         StructDeclaration         layout  = new StructDeclaration(className, fields, line(ctx), column(ctx));
 
-        return new ClassDeclaration(className, layout, members, privates, line(ctx), column(ctx));
+        return new ClassDeclaration(className, layout, members, line(ctx), column(ctx));
     }
 
     /**
@@ -150,7 +145,7 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         if (methods.stream().noneMatch(FunctionDeclaration::isConstructor))
         {
             members.add(constructor(className, new ArrayList<>(),
-                    new Block(new ArrayList<>(), line(ctx), column(ctx)), line(ctx), column(ctx)));
+                    new Block(new ArrayList<>(), line(ctx), column(ctx)), Visibility.DEFAULT, line(ctx), column(ctx)));
         }
         members.addAll(methods);
 
@@ -165,18 +160,31 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         members = new ArrayList<>(members.stream()
                 .map(method -> !method.isConstructor() ? method
                         : constructor(method.getName(), method.getParameters(),
-                                prepend(List.of(call), method.getBody()), method.getLine(), method.getColumn()))
+                                prepend(List.of(call), method.getBody()), method.getVisibility(), method.getLine(),
+                                method.getColumn()))
                 .toList());
         members.add(new FunctionDeclaration(INITIALIZERS, "void", List.of(), List.of(),
-                new Block(initializers, line(ctx), column(ctx)), false, className, false, line(ctx), column(ctx)));
+                new Block(initializers, line(ctx), column(ctx)), false, className, false, Visibility.PRIVATE,
+                line(ctx), column(ctx)));
         return members;
     }
 
     private FunctionDeclaration constructor(String name, List<Parameter> parameters, Block body,
-                                            int line, int column)
+                                            Visibility visibility, int line, int column)
     {
         return new FunctionDeclaration(name, "void", parameters, List.of(), body, false, className,
-                true, line, column);
+                true, visibility, line, column);
+    }
+
+    /** No modifier is Java's default. */
+    private static Visibility visibility(ZParser.VisibilidadContext ctx)
+    {
+        if (ctx == null)
+        {
+            return Visibility.DEFAULT;
+        }
+        return ctx.PRIVATE() != null ? Visibility.PRIVATE
+             : ctx.PROTECTED() != null ? Visibility.PROTECTED : Visibility.PUBLIC;
     }
 
     private static Block prepend(List<AstNode> statements, Block body)
@@ -194,7 +202,7 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
 
         return (missing(ctx.ID()) || body == null) ? null
                 : constructor(ctx.ID().getText(), parameters(ctx.listaParametros()), body,
-                        line(ctx), column(ctx));
+                        visibility(ctx.visibilidad()), line(ctx), column(ctx));
     }
 
     @Override
@@ -209,7 +217,7 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         }
         return new FunctionDeclaration(ctx.ID().getText(), returnsValue ? ctx.tipo().getText() : "void",
                 parameters(ctx.listaParametros()), List.of(), body, returnsValue, className, false,
-                line(ctx), column(ctx));
+                visibility(ctx.visibilidad()), line(ctx), column(ctx));
     }
 
     /**
@@ -295,7 +303,8 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
                 initializers.add(new Assignment(attributeOf(name, ctx), value, line(ctx), column(ctx)));
             }
         }
-        return new StructField(name, baseType(ctx.tipo()), rank, size, line(ctx), column(ctx));
+        return new StructField(name, baseType(ctx.tipo()), rank, size, visibility(ctx.visibilidad()), line(ctx),
+                column(ctx));
     }
 
     /**

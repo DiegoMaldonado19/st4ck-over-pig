@@ -19,6 +19,9 @@ public abstract class Symbol
     private final int            line;
     private final int            column;
 
+    /** Of an attribute, method or constructor, set when its class is registered; DEFAULT for the rest. */
+    private Visibility           visibility = Visibility.DEFAULT;
+
     protected Symbol(String name, DataType type, String typeText, SymbolCategory category,
                      String scopeName, int line, int column)
     {
@@ -70,5 +73,15 @@ public abstract class Symbol
     public String getDetail()
     {
         return "";
+    }
+
+    public Visibility getVisibility()
+    {
+        return visibility;
+    }
+
+    public void setVisibility(Visibility visibility)
+    {
+        this.visibility = visibility;
     }
 }

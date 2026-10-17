@@ -4,6 +4,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.AstNode;
 import com.dmaldonado.st4ck.over.pig.model.ast.AstVisitor;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.Block;
 import com.dmaldonado.st4ck.over.pig.model.symbols.FunctionSymbol;
+import com.dmaldonado.st4ck.over.pig.model.symbols.Visibility;
 import com.dmaldonado.st4ck.over.pig.model.types.DataType;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,8 @@ public class FunctionDeclaration extends AstNode
     /** Class a constructor or method belongs to; null for a free function. */
     private final String          ownerClass;
     private final boolean         constructor;
+    /** Of a constructor or method; a free function is DEFAULT. */
+    private final Visibility      visibility;
 
     /** Set by the semantic analyzer: null when the signature was rejected as a duplicate. */
     private FunctionSymbol symbol;
@@ -40,12 +43,12 @@ public class FunctionDeclaration extends AstNode
                                int line, int column)
     {
         this(name, returnTypeText, parameters, localVariables, body, returnsValue, null, false,
-                line, column);
+                Visibility.DEFAULT, line, column);
     }
 
     public FunctionDeclaration(String name, String returnTypeText, List<Parameter> parameters,
                                List<AstNode> localVariables, Block body, boolean returnsValue,
-                               String ownerClass, boolean constructor, int line, int column)
+                               String ownerClass, boolean constructor, Visibility visibility, int line, int column)
     {
         super(line, column);
         this.name           = name;
@@ -57,6 +60,7 @@ public class FunctionDeclaration extends AstNode
         this.returnsValue   = returnsValue;
         this.ownerClass     = ownerClass;
         this.constructor    = constructor;
+        this.visibility     = visibility;
     }
 
     public String getName()
@@ -103,6 +107,11 @@ public class FunctionDeclaration extends AstNode
     public boolean isConstructor()
     {
         return constructor;
+    }
+
+    public Visibility getVisibility()
+    {
+        return visibility;
     }
 
     public FunctionSymbol getSymbol()

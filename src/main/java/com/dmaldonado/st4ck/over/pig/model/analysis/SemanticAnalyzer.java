@@ -52,6 +52,7 @@ import com.dmaldonado.st4ck.over.pig.model.symbols.Symbol;
 import com.dmaldonado.st4ck.over.pig.model.symbols.SymbolCategory;
 import com.dmaldonado.st4ck.over.pig.model.symbols.SymbolTable;
 import com.dmaldonado.st4ck.over.pig.model.symbols.VariableSymbol;
+import com.dmaldonado.st4ck.over.pig.model.symbols.Visibility;
 import com.dmaldonado.st4ck.over.pig.model.types.DataType;
 import com.dmaldonado.st4ck.over.pig.model.types.TypeSystem;
 import java.util.ArrayList;
@@ -450,15 +451,6 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     public DataType visitClassDeclaration(ClassDeclaration node)
     {
         validateStructFieldTypes(node.getLayout());
-
-        for (AstNode member : node.getPrivateMembers())
-        {
-            String name = member instanceof StructField field ? field.getName()
-                    : ((FunctionDeclaration) member).getName();
-
-            error(member, "El encapsulamiento se contempla en el Proyecto 2: quite 'private' de '"
-                    + name + "'.", "private");
-        }
 
         StructSymbol previousClass = currentClass;
 
@@ -1223,6 +1215,9 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         }
 
         VariableSymbol attribute = struct.getAttribute(node.getMemberName());
+
+        checkAccess(node, "El atributo '" + struct.getName() + "." + node.getMemberName() + "'",
+                attribute.getVisibility(), struct.getName(), node.getMemberName());
         node.setStructName(attribute.getStructName());
         return typeCheck(node, attribute.getType());
     }
@@ -1365,6 +1360,27 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     }
 
     /**
+     * Encapsulation: what is private or protected is only used inside its own
+     * class, on any object of it, as in Java. Without packages (auxiliar,
+     * 15-oct) default reaches as far as public; the subclasses protected also
+     * reaches come with Fase 8.
+     *
+     * ponytail: the overload is chosen first and its access checked after;
+     * Java leaves the inaccessible ones out before choosing.
+     */
+    private void checkAccess(AstNode node, String member, Visibility visibility, String ownerClass, String lexeme)
+    {
+        if ((visibility == Visibility.PRIVATE || visibility == Visibility.PROTECTED)
+                && (currentClass == null || !currentClass.getName().equals(ownerClass)))
+        {
+            error(node, member + (visibility == Visibility.PRIVATE
+                    ? " es private: solo puede usarse dentro de la clase '" + ownerClass + "'."
+                    : " es protected: solo puede usarse dentro de la clase '" + ownerClass
+                      + "' y de sus clases hijas."), lexeme);
+        }
+    }
+
+    /**
      * Java's rule: of the overloads that accept every argument, those no other
      * one beats by being narrower, so g('c') picks g(int) over g(double). Empty
      * when none accepts them; several when they tie, as f(int, double) and
@@ -1469,8 +1485,15 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
                     + node.getMethodName() + "()'.", node.getMethodName());
             return typeCheck(node, DataType.ERROR);
         }
-        return typed(node, resolve(node, "El metodo", node.getMethodName(), overloads,
-                node.getArguments()));
+
+        FunctionSymbol method = resolve(node, "El metodo", node.getMethodName(), overloads, node.getArguments());
+
+        if (method != null)
+        {
+            checkAccess(node, "El metodo '" + method.getSignature() + "'", method.getVisibility(),
+                    method.getOwnerClass(), node.getMethodName());
+        }
+        return typed(node, method);
     }
 
     /** novus / new: the constructor is chosen among the overloads, like any call. */
@@ -1494,6 +1517,8 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         {
             return typeCheck(node, DataType.ERROR);
         }
+        checkAccess(node, "El constructor '" + constructor.getSignature() + "'", constructor.getVisibility(),
+                type.getName(), node.getClassName());
         node.setConstructor(constructor);
         node.setStructName(type.getName());
         return typeCheck(node, DataType.ESTRUCTURA);
@@ -1653,6 +1678,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
                     structNameOf(field.getType(), field.getTypeText()), field.getRank(),
                     field.getLine(), field.getColumn());
 
+            attribute.setVisibility(field.getVisibility());
             if (!struct.addAttribute(attribute))
             {
                 error(field, "El atributo '" + field.getName()
@@ -1703,6 +1729,8 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
                 node.getReturnTypeText(), symbolTable.getCurrentScopeName(), parameters,
                 node.returnsValue(), structNameOf(node.getReturnType(), node.getReturnTypeText()),
                 node.getOwnerClass(), node.isConstructor(), node.getLine(), node.getColumn());
+
+        function.setVisibility(node.getVisibility());
 
         // Sobrecarga permitida: solo choca otra version con los mismos tipos.
         if (!symbolTable.declareFunction(function))
