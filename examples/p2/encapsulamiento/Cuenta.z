@@ -1,0 +1,67 @@
+// Encapsulamiento (Fase 7): un atributo, un constructor y un metodo de cada
+// visibilidad. Dentro de su clase todo se usa, tambien sobre otro objeto de
+// la misma clase (otra.pin), como en Java. tasa tiene valor inicial: asi los
+// constructores se reconstruyen con sus inicializadores y conservan su
+// visibilidad.
+public class Cuenta {
+    public String titular;
+    int saldo;
+    protected int tasa = 10;
+    private int pin;
+
+    public Cuenta(String titular1, int saldo1, int pin1) {
+        titular = titular1;
+        saldo = saldo1;
+        pin = pin1;
+    }
+
+    Cuenta(String titular1) {
+        titular = titular1;
+        saldo = 0;
+        pin = 0;
+    }
+
+    protected Cuenta(int saldo1) {
+        titular = "Interna";
+        saldo = saldo1;
+        pin = 0;
+    }
+
+    private Cuenta() {
+        titular = "Vacia";
+        saldo = 0;
+        pin = 0;
+    }
+
+    public boolean retirar(int pin1, int monto) {
+        if (!validarPin(pin1) || monto > saldo) {
+            return false;
+        }
+        saldo -= monto;
+        return true;
+    }
+
+    private boolean validarPin(int pin1) {
+        return pin == pin1;
+    }
+
+    protected int interes() {
+        return saldo * tasa / 100;
+    }
+
+    void abonarInteres() {
+        saldo += this.interes();
+    }
+
+    public boolean mismoPin(Cuenta otra) {
+        return this.pin == otra.pin;
+    }
+
+    public Cuenta vacia() {
+        return new Cuenta();
+    }
+
+    public Cuenta interna(int saldo1) {
+        return new Cuenta(saldo1);
+    }
+}

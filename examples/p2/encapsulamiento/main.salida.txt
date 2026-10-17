@@ -1,0 +1,9 @@
+Titular: Diego
+Retiro con el pin correcto: verum
+Retiro con otro pin: falsus
+Saldo con interes: 1320
+Vacia: Vacia 0
+Interna: Interna 70
+Mismo pin que Luis: falsus
+Banco: Diego tiene 1562
+Banco: Luis 0 false

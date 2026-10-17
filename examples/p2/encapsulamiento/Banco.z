@@ -1,0 +1,18 @@
+// Otra clase: usa lo public y lo default de Cuenta (atributos, metodos y
+// constructores). Lo private y lo protected lo intenta Intruso.z.
+public class Banco {
+    Cuenta principal;
+
+    public Banco(Cuenta cuenta) {
+        principal = cuenta;
+    }
+
+    public void reporte() {
+        principal.saldo += 100;
+        principal.abonarInteres();
+        println("Banco: " + principal.titular + " tiene " + principal.saldo);
+        Cuenta socia = new Cuenta("Ana", 50, 4321);
+        Cuenta nueva = new Cuenta("Luis");
+        println("Banco: " + nueva.titular + " " + nueva.saldo + " " + socia.mismoPin(principal));
+    }
+}
