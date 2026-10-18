@@ -1,0 +1,19 @@
+// Su poder es el de cualquier agente mas dos por cada sector explorado.
+public class Explorador extends Agente {
+    int sectores;
+
+    public Explorador(String nombreInicial, int nivelInicial, int sectoresIniciales) {
+        super(nombreInicial, nivelInicial);
+        sectores = sectoresIniciales;
+    }
+
+    @Override
+    public int poder() {
+        return super.poder() + sectores * 2;
+    }
+
+    @Override
+    public String rol() {
+        return "Explorador";
+    }
+}

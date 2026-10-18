@@ -1,0 +1,45 @@
+// El salon de informatica como una matriz: cuantos cerdos vigilan cada celda.
+// Sus dimensiones llegan al constructor, asi que la matriz se crea con new.
+public class Mapa {
+    int filas;
+    int columnas;
+    int[][] guardias;
+
+    public Mapa(int filasIniciales, int columnasIniciales) {
+        filas = filasIniciales;
+        columnas = columnasIniciales;
+        guardias = new int[filas][columnas];
+    }
+
+    public void vigilar(int fila, int columna, int cerdos) {
+        guardias[fila][columna] = cerdos;
+    }
+
+    // Recursividad: los guardias de la fila indicada y de las que le siguen.
+    public int guardiasDesde(int fila) {
+        if (fila == filas) {
+            return 0;
+        }
+        int enFila = 0;
+        for (int c = 0; c < columnas; c++) {
+            enFila += guardias[fila][c];
+        }
+        return enFila + guardiasDesde(fila + 1);
+    }
+
+    public int columnaMasSegura() {
+        int mejor = 0;
+        int menor = -1;
+        for (int c = 0; c < columnas; c++) {
+            int suma = 0;
+            for (int f = 0; f < filas; f++) {
+                suma += guardias[f][c];
+            }
+            if (menor < 0 || suma < menor) {
+                menor = suma;
+                mejor = c;
+            }
+        }
+        return mejor;
+    }
+}

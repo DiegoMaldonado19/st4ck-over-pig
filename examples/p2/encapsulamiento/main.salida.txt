@@ -7,3 +7,5 @@ Interna: Interna 70
 Mismo pin que Luis: falsus
 Banco: Diego tiene 1562
 Banco: Luis 0 false
+Ahorro: Ahorro capitaliza 1440
+Ahorro de Luisa: 0

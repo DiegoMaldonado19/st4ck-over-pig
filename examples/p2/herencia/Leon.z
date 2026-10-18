@@ -1,0 +1,17 @@
+// Una clase hija de Gato, cuyo unico constructor pide el nombre: cada
+// constructor de Leon tiene que empezar con super(...). Tres errores, uno por
+// miembro (la lista esta en la cabecera de errores.pig).
+public class Leon extends Gato {
+    public Leon() {
+        println("Ruge un leon.");
+        super("Simba");
+    }
+
+    public Leon(int edad) {
+        println("Leon de " + edad + " años.");
+    }
+
+    public int fuerza() {
+        return energia * 2;
+    }
+}

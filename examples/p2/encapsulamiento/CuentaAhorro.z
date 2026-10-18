@@ -1,0 +1,19 @@
+// Clase hija: usa lo public, lo default y lo protected de Cuenta (atributos,
+// metodos y constructores, estos con super). Lo private lo intenta
+// CuentaEspia.z.
+public class CuentaAhorro extends Cuenta {
+    public CuentaAhorro(int saldoInicial) {
+        super(saldoInicial);
+        titular = "Ahorro";
+        tasa = 20;
+    }
+
+    CuentaAhorro(String titularInicial) {
+        super(titularInicial);
+    }
+
+    public int capitalizar() {
+        abonarInteres();
+        return saldo + interes();
+    }
+}

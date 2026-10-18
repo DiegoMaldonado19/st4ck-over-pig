@@ -1,0 +1,6 @@
+Persona de 12 años: Profesor
+Profesor de 12 años, colega de: Persona de 12 años: Profesor
+nadie es null
+ahora nadie es: Profesor de 45 años, colega de: Profesor de 12 años, colega de: Persona de 12 años: Profesor
+su alumno: Persona de 12 años: Profesor
+nadie vuelve a ser null

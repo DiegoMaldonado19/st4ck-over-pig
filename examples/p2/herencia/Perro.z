@@ -1,0 +1,8 @@
+// Subclase (clase hija) del enunciado: hereda 'nombre' y comer(). No declara
+// constructor, asi que el suyo llama primero a Animal(), el super() implicito
+// de Java.
+public class Perro extends Animal {
+    public void ladrar() {
+        println(nombre + " está ladrando: ¡Guau, guau!");
+    }
+}

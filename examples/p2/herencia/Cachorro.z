@@ -1,0 +1,21 @@
+// Tres niveles: Cachorro hereda de Perro, que hereda de Animal. Sus atributos
+// van en el objeto despues de los heredados, y cada constructor corre en
+// orden: Perro() (que llama a Animal()), el valor inicial de 'meses' y su
+// cuerpo. describir() sobrescribe la de Animal y la reutiliza con super.
+public class Cachorro extends Perro {
+    int meses = 2;
+
+    public Cachorro(String nombreInicial) {
+        nombre = nombreInicial + " Jr.";
+    }
+
+    public Cachorro(String nombreInicial, int mesesIniciales) {
+        nombre = nombreInicial;
+        meses = mesesIniciales;
+    }
+
+    @Override
+    public String describir() {
+        return super.describir() + ", " + meses + " meses";
+    }
+}

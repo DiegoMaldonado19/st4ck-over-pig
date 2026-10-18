@@ -1,0 +1,23 @@
+// Clase padre del equipo de la resistencia. reporte() llama a rol() y a
+// poder() sin objeto: responde la version de la clase de cada agente.
+public class Agente {
+    String nombre;
+    protected int nivel;
+
+    public Agente(String nombreInicial, int nivelInicial) {
+        nombre = nombreInicial;
+        nivel = nivelInicial;
+    }
+
+    public int poder() {
+        return nivel * 10;
+    }
+
+    public String rol() {
+        return "Agente";
+    }
+
+    public String reporte() {
+        return rol() + " " + nombre + ": poder " + poder();
+    }
+}

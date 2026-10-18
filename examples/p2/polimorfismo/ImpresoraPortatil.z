@@ -1,0 +1,10 @@
+// No sobrescribe imprimir(): usa la de ImpresoraPDF, y el despacho la manda
+// a la misma version que a ImpresoraPDF. Si sobrescribe estado().
+class ImpresoraPortatil extends ImpresoraPDF {
+    int bateria = 80;
+
+    @Override
+    public String estado() {
+        return "con batería al " + bateria + "%";
+    }
+}

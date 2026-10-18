@@ -1,0 +1,3 @@
+// Hereda de una clase que no existe.
+public class Huerfano extends Fantasma {
+}

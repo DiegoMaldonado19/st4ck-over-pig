@@ -1,0 +1,11 @@
+// Tercer nivel de herencia: usa el poder() de Hacker y solo cambia su rol.
+public class HackerElite extends Hacker {
+    public HackerElite(String nombreInicial) {
+        super(nombreInicial, 6);
+    }
+
+    @Override
+    public String rol() {
+        return "Hacker de élite";
+    }
+}

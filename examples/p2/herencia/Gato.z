@@ -1,0 +1,16 @@
+// Llama con super(...) al constructor protected de Animal, como primera
+// instruccion; despues corre el valor inicial de 'vidas' y luego el resto.
+// Su unico constructor pide el nombre: una clase hija de Gato tiene que
+// llamarlo con super(...), y Leon.z y Tigre.z no lo hacen.
+public class Gato extends Animal {
+    int vidas = 7;
+
+    public Gato(String nombreInicial) {
+        super(nombreInicial);
+        println("Nace " + nombre + " con " + vidas + " vidas.");
+    }
+
+    public void maullar() {
+        println(nombre + " dice: miau.");
+    }
+}

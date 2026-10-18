@@ -1,0 +1,3 @@
+// Una clase no puede heredar de si misma, ni a traves de otras clases.
+public class Ciclo extends Ciclo {
+}

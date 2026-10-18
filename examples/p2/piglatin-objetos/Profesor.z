@@ -1,0 +1,21 @@
+// Clase hija de Persona del enunciado: novus Profesor(12, miObjeto,
+// novus Persona()) recibe la edad, un colega y un alumno.
+public class Profesor extends Persona {
+    Persona colega;
+    Persona alumno;
+
+    public Profesor(int edadInicial, Persona colegaInicial, Persona alumnoInicial) {
+        super(edadInicial, "Profesor");
+        colega = colegaInicial;
+        alumno = alumnoInicial;
+    }
+
+    @Override
+    public String presentarse() {
+        return "Profesor de " + edad + " años, colega de: " + colega.presentarse();
+    }
+
+    public Persona getAlumno() {
+        return alumno;
+    }
+}

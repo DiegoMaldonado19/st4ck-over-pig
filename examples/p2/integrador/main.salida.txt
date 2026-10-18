@@ -1,0 +1,11 @@
+Nombre del lider de la mision:
+Escalones hasta el servidor:
+Agente Diego: poder 30
+Explorador Ana: poder 50
+Hacker Zeta: poder 32
+Hacker de élite Neo: poder 64
+Poder del equipo: 176
+Guardias en el salon: 10
+Columna mas segura: 1
+Formas de subir 6 escalones: 13
+La mision de Diego puede empezar.

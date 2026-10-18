@@ -1,0 +1,7 @@
+// Hereda de Gato sin declarar constructores: el que Java le da llamaria a
+// Gato(), que no existe. El error se reporta en la clase.
+public class Tigre extends Gato {
+    public void cazar() {
+        println(nombre + " caza.");
+    }
+}

@@ -1,0 +1,6 @@
+class ImpresoraExcel extends Impresora {
+    @Override
+    public void imprimir() {
+        println("Imprimiendo hojas de cálculo en formato tabular...");
+    }
+}

@@ -1,0 +1,20 @@
+// La clase de los ejemplos de PigLatin del enunciado: novus Persona(12,
+// "Profesor") y novus Persona().
+public class Persona {
+    int edad;
+    String ocupacion;
+
+    public Persona() {
+        edad = 0;
+        ocupacion = "Sin ocupación";
+    }
+
+    public Persona(int edadInicial, String ocupacionInicial) {
+        edad = edadInicial;
+        ocupacion = ocupacionInicial;
+    }
+
+    public String presentarse() {
+        return "Persona de " + edad + " años: " + ocupacion;
+    }
+}

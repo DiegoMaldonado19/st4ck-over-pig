@@ -1,0 +1,22 @@
+// Las cuatro reglas de @Override, un metodo por regla (la lista esta en la
+// cabecera de errores.pig).
+class ImpresoraRota extends Impresora {
+    public void imprimir() {
+        println("Sobrescribe sin @Override.");
+    }
+
+    @Override
+    public void escanear() {
+        println("No hay un escanear() heredado que sobrescribir.");
+    }
+
+    @Override
+    public int imprimirCopias(int copias) {
+        return copias;
+    }
+
+    @Override
+    protected String estado() {
+        return "rota";
+    }
+}

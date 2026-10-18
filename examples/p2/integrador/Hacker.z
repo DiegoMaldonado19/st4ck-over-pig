@@ -1,0 +1,25 @@
+// Su poder crece en potencias de dos con su nivel, que es protected en
+// Agente: una clase hija si puede usarlo.
+public class Hacker extends Agente {
+    public Hacker(String nombreInicial, int nivelInicial) {
+        super(nombreInicial, nivelInicial);
+    }
+
+    // Recursividad: base elevada al exponente.
+    private int potencia(int base, int exponente) {
+        if (exponente == 0) {
+            return 1;
+        }
+        return base * potencia(base, exponente - 1);
+    }
+
+    @Override
+    public int poder() {
+        return potencia(2, nivel);
+    }
+
+    @Override
+    public String rol() {
+        return "Hacker";
+    }
+}

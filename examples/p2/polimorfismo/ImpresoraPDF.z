@@ -1,0 +1,6 @@
+class ImpresoraPDF extends Impresora {
+    @Override
+    public void imprimir() {
+        println("Imprimiendo en formato .PDF optimizado...");
+    }
+}
