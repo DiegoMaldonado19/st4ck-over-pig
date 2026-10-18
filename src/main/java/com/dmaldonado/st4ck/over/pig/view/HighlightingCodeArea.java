@@ -35,8 +35,8 @@ public final class HighlightingCodeArea
 {
     private static final Logger LOGGER = Logger.getLogger(HighlightingCodeArea.class.getName());
 
-    /** 'si', 'class', '%funciones', 'VARIABILES>': the literal of a reserved word. */
-    private static final Pattern KEYWORD = Pattern.compile("'%?[A-Za-z]+[>\\[]?'");
+    /** 'si', 'class', '%funciones', '@Override', 'VARIABILES>': the literal of a reserved word. */
+    private static final Pattern KEYWORD = Pattern.compile("'[%@]?[A-Za-z]+[>\\[]?'");
 
     /** Types and literal values of the three languages, written as their grammar literals. */
     private static final Set<String> TYPES = Set.of(
