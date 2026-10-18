@@ -41,6 +41,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.statement.IncrementStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.InputStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.PrintStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.ReturnStatement;
+import com.dmaldonado.st4ck.over.pig.model.ast.statement.SuperConstructorCall;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.SwitchStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.WhileStatement;
 import com.dmaldonado.st4ck.over.pig.model.codegen.RiscVEmitter;
@@ -227,7 +228,8 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             {
                 error(node, "No se puede asignar un valor '"
                         + describe(valueType, value.getStructName()) + "' a la variable '"
-                        + node.getName() + "' de tipo '" + node.getTypeText() + "'.",
+                        + node.getName() + "' de tipo '" + node.getTypeText() + "'"
+                        + fitHint(structName, valueType, value.getStructName()) + ".",
                         node.getName());
             }
         }
@@ -446,6 +448,8 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     /**
      * The attributes are in scope inside every method, below its parameters
      * and locals: "cima = nuevo" reaches the attribute unless a local shadows it.
+     * The inherited ones too, below its own: an attribute of the subclass hides
+     * the parent's with the same name, as in Java.
      */
     @Override
     public DataType visitClassDeclaration(ClassDeclaration node)
@@ -455,11 +459,14 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         StructSymbol previousClass = currentClass;
 
         currentClass = symbolTable.lookupStruct(node.getName());
+        checkParent(node);
         symbolTable.openScope(node.getName());
 
         if (currentClass != null)
         {
             currentClass.getAttributes().values().forEach(symbolTable::declare);
+            lineage(currentClass).stream().skip(1)
+                    .forEach(parent -> parent.getAttributes().values().forEach(symbolTable::declareInherited));
         }
         for (FunctionDeclaration method : node.getMethods())
         {
@@ -469,6 +476,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
                         + node.getName() + "'; si es un metodo, escriba su tipo de retorno.",
                         method.getName());
             }
+            checkOverride(method);
             method.accept(this);
         }
 
@@ -670,7 +678,9 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             error(node, "Asignacion invalida: no se puede guardar " + (wholeArray ? "un arreglo de '" : "'")
                     + describe(valueType, node.getValue().getStructName()) + "' en "
                     + (wholeArray ? "un arreglo de '" : "un destino de tipo '")
-                    + describe(targetType, targetStruct) + "'.", "=");
+                    + describe(targetType, targetStruct) + "'"
+                    + (wholeArray ? "" : fitHint(targetStruct, valueType, node.getValue().getStructName())) + ".",
+                    "=");
         }
         return targetType;
     }
@@ -806,7 +816,8 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             error(node, "Se retorna '"
                     + describe(returnedType, node.getValue().getStructName())
                     + "' pero " + functionWord(currentFunction, false) + " '" + currentFunction.getName() + "' declara '"
-                    + currentFunction.getReturnTypeText() + "'.", keyword);
+                    + currentFunction.getReturnTypeText() + "'"
+                    + fitHint(expectedStruct, returnedType, node.getValue().getStructName()) + ".", keyword);
         }
         return returnedType;
     }
@@ -1053,6 +1064,12 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
 
         node.setSymbol(symbol);
 
+        // An attribute named alone may be inherited: a private one of the parent is not the subclass's to use.
+        if (symbol.getCategory() == SymbolCategory.ATTRIBUTE)
+        {
+            checkAccess(node, "El atributo '" + symbol.getScopeName() + "." + node.getName() + "'",
+                    symbol.getVisibility(), symbol.getScopeName(), node.getName());
+        }
         if (symbol instanceof VariableSymbol variable)
         {
             node.setStructName(variable.getStructName());
@@ -1204,9 +1221,10 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             return typeCheck(node, DataType.ERROR);
         }
 
-        StructSymbol struct = symbolTable.lookupStruct(structName);
+        StructSymbol   struct    = symbolTable.lookupStruct(structName);
+        VariableSymbol attribute = attributeOf(struct, node.getMemberName());
 
-        if (struct == null || !struct.hasAttribute(node.getMemberName()))
+        if (attribute == null)
         {
             error(node, (struct != null && struct.isClass() ? "La clase '" : "La " + structWord() + " '")
                     + structName + "' no tiene el atributo '" + node.getMemberName() + "'.",
@@ -1214,10 +1232,11 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             return typeCheck(node, DataType.ERROR);
         }
 
-        VariableSymbol attribute = struct.getAttribute(node.getMemberName());
+        // The class that declares it, which an inherited attribute's is not.
+        String declaring = attribute.getScopeName();
 
-        checkAccess(node, "El atributo '" + struct.getName() + "." + node.getMemberName() + "'",
-                attribute.getVisibility(), struct.getName(), node.getMemberName());
+        checkAccess(node, "El atributo '" + declaring + "." + node.getMemberName() + "'", attribute.getVisibility(),
+                declaring, node.getMemberName());
         node.setStructName(attribute.getStructName());
         return typeCheck(node, attribute.getType());
     }
@@ -1242,6 +1261,12 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         FunctionSymbol function = resolve(node, methods.isEmpty() ? "La funcion" : "El metodo",
                 node.getName(), overloads, node.getArguments());
 
+        // A method named alone may be inherited: a private one of the parent is not the subclass's to use.
+        if (function != null && function.isMethod())
+        {
+            checkAccess(node, "El metodo '" + function.getSignature() + "'", function.getVisibility(),
+                    function.getOwnerClass(), node.getName());
+        }
         return typed(node, function);
     }
 
@@ -1255,7 +1280,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
      *         single overload with the wrong arity is still returned, so the
      *         call keeps its type and does not cascade.
      */
-    private FunctionSymbol resolve(Expression node, String kind, String name,
+    private FunctionSymbol resolve(AstNode node, String kind, String name,
                                    List<FunctionSymbol> overloads, List<Expression> arguments)
     {
         List<DataType> types = new ArrayList<>();
@@ -1326,7 +1351,9 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
 
                 error(argument, "El argumento " + (i + 1) + " de '" + name + "' debe ser " + of
                         + describe(parameter.getType(), parameter.getStructName()) + "' y es " + of
-                        + describe(argumentType, argument.getStructName()) + "'.", name);
+                        + describe(argumentType, argument.getStructName()) + "'"
+                        + (parameter.isArray() ? "" : fitHint(parameter.getStructName(), argumentType,
+                                                               argument.getStructName())) + ".", name);
             }
         }
         return function;
@@ -1351,27 +1378,47 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         return typeCheck(node, function.getType());
     }
 
-    /** The methods of a class with that name; its constructors are not among them. */
+    /**
+     * The methods with that name of a class, the inherited ones too, nearest
+     * first: one that overrides another hides it. Its constructors are not
+     * among them.
+     */
     private List<FunctionSymbol> methodsOf(String className, String methodName)
     {
-        return symbolTable.lookupFunctions(className + "." + methodName).stream()
-                .filter(function -> !function.isConstructor())
-                .toList();
+        List<FunctionSymbol> methods = new ArrayList<>();
+
+        for (StructSymbol type : lineage(symbolTable.lookupStruct(className)))
+        {
+            for (FunctionSymbol method : symbolTable.lookupFunctions(type.getName() + "." + methodName))
+            {
+                if (!method.isConstructor() && methods.stream().noneMatch(method::hasSameParameters))
+                {
+                    methods.add(method);
+                }
+            }
+        }
+        return methods;
     }
 
     /**
-     * Encapsulation: what is private or protected is only used inside its own
-     * class, on any object of it, as in Java. Without packages (auxiliar,
-     * 15-oct) default reaches as far as public; the subclasses protected also
-     * reaches come with Fase 8.
+     * Encapsulation: what is private is only used inside its own class, on
+     * any object of it, as in Java, and what is protected inside its
+     * subclasses too. Without packages (auxiliar, 15-oct) default reaches as
+     * far as public.
      *
      * ponytail: the overload is chosen first and its access checked after;
      * Java leaves the inaccessible ones out before choosing.
      */
     private void checkAccess(AstNode node, String member, Visibility visibility, String ownerClass, String lexeme)
     {
-        if ((visibility == Visibility.PRIVATE || visibility == Visibility.PROTECTED)
-                && (currentClass == null || !currentClass.getName().equals(ownerClass)))
+        boolean reached = switch (visibility)
+        {
+            case PRIVATE   -> currentClass != null && currentClass.getName().equals(ownerClass);
+            case PROTECTED -> currentClass != null && isSubclass(currentClass.getName(), ownerClass);
+            default        -> true;
+        };
+
+        if (!reached)
         {
             error(node, member + (visibility == Visibility.PRIVATE
                     ? " es private: solo puede usarse dentro de la clase '" + ownerClass + "'."
@@ -1548,17 +1595,83 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         return typeCheck(node, node.getElementType());
     }
 
-    /** this is the object of the method it is written in. */
+    /** this is the object of the method it is written in; super, the same object as its parent class. */
     @Override
     public DataType visitThisExpression(ThisExpression node)
     {
+        String word = node.isSuper() ? "super" : "this";
+
         if (currentClass == null)
         {
-            error(node, "'this' solo existe dentro de los metodos de una clase.", "this");
+            error(node, "'" + word + "' solo existe dentro de los metodos de una clase.", word);
             return typeCheck(node, DataType.ERROR);
         }
-        node.setStructName(currentClass.getName());
+
+        StructSymbol type = node.isSuper() ? parentOf(currentClass) : currentClass;
+
+        if (type == null)
+        {
+            reportNoParent(node, "super.metodo(...)");
+            return typeCheck(node, DataType.ERROR);
+        }
+        node.setStructName(type.getName());
         return typeCheck(node, DataType.ESTRUCTURA);
+    }
+
+    /**
+     * super(...): the call to the parent's constructor a constructor of a
+     * subclass starts with, written or added by the builder as Java's
+     * implicit super(). Anywhere else it is an error, as in Java.
+     */
+    @Override
+    public DataType visitSuperConstructorCall(SuperConstructorCall node)
+    {
+        List<AstNode> body   = currentFunction.getBody().getStatements();
+        StructSymbol  parent = currentClass == null ? null : parentOf(currentClass);
+
+        if (!currentFunction.isConstructor() || body.isEmpty() || body.get(0) != node)
+        {
+            visitArguments(node.getArguments());
+            error(node, "'super(...)' solo puede ir como primera instruccion de un constructor.", "super");
+            return DataType.ERROR;
+        }
+        if (parent == null)
+        {
+            visitArguments(node.getArguments());
+            reportNoParent(node, "super(...)");
+            return DataType.ERROR;
+        }
+
+        List<FunctionSymbol> constructors = symbolTable.lookupFunctions(parent.getName() + "." + parent.getName());
+
+        if (node.isImplicit() && constructors.stream().noneMatch(constructor -> constructor.getParameterCount() == 0))
+        {
+            error(node, "'" + parent.getName() + "' no tiene un constructor sin parametros: todo constructor de '"
+                    + currentClass.getName() + "' debe empezar llamando a uno de los suyos con 'super(...)'.",
+                    currentClass.getName());
+            return DataType.ERROR;
+        }
+
+        FunctionSymbol constructor = resolve(node, "El constructor", parent.getName(), constructors,
+                node.getArguments());
+
+        if (constructor != null)
+        {
+            checkAccess(node, "El constructor '" + constructor.getSignature() + "'", constructor.getVisibility(),
+                    parent.getName(), "super");
+            node.setConstructor(constructor);
+        }
+        return DataType.VOID;
+    }
+
+    /** super in a class without extends; with an extends that names no class, checkParent already said so. */
+    private void reportNoParent(AstNode node, String written)
+    {
+        if (currentClass != null && currentClass.getParentName() == null)
+        {
+            error(node, "'" + written + "' solo existe en una clase que hereda de otra, y '" + currentClass.getName()
+                    + "' no tiene extends.", "super");
+        }
     }
 
     /** The wider branch gives the type: c ? 1 : 2.5 is decimal, and null fits an object. */
@@ -1627,18 +1740,27 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     /* =================================================================
      * Registration (pass 1)
      * ================================================================= */
-    /** A class is registered as the structure of its attributes plus the signatures of its methods. */
+    /**
+     * A class is registered as the structure of its own attributes, the name
+     * of its parent and the signatures of its methods. The parent may come in
+     * a file registered later: it is checked in pass 2, by checkParent.
+     */
     private void registerClass(ClassDeclaration node)
     {
-        registerStruct(node.getLayout(), true);
+        StructSymbol type = registerStruct(node.getLayout(), true);
 
+        if (type != null)
+        {
+            type.setParentName(node.getParentName());
+        }
         for (FunctionDeclaration method : node.getMethods())
         {
             registerFunctionSignature(method);
         }
     }
 
-    private void registerStruct(StructDeclaration node, boolean classType)
+    /** @return the registered structure or class; null when its name was rejected. */
+    private StructSymbol registerStruct(StructDeclaration node, boolean classType)
     {
         requireDeclarationPlace(node, node.getName());
 
@@ -1656,14 +1778,14 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             error(node, "'" + node.getName() + "' es el nombre de un tipo primitivo: la "
                     + (classType ? "clase" : structWord())
                     + " necesita otro nombre.", node.getName());
-            return;
+            return null;
         }
         // Also one visible from an outer scope: two layouts under one name would be taken for each other.
         if (symbolTable.lookupLocal(node.getName()) != null || symbolTable.lookupStruct(node.getName()) != null)
         {
             error(node, "La " + (classType ? "clase" : structWord())
                     + " '" + node.getName() + "' ya fue declarada.", node.getName());
-            return;
+            return null;
         }
 
         StructSymbol struct = new StructSymbol(node.getName(), symbolTable.getCurrentScopeName(),
@@ -1688,6 +1810,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             }
         }
         symbolTable.declare(struct);
+        return struct;
     }
 
     /** Paso 2: ya estan todas registradas, un campo puede citar una declarada despues. */
@@ -1741,6 +1864,137 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
             return;
         }
         node.setSymbol(function);
+    }
+
+    /* =================================================================
+     * Inheritance (Fase 8)
+     * ================================================================= */
+
+    /**
+     * Single inheritance, as in Java: the parent is a class that exists and
+     * no class ends up inheriting from itself. A cycle is reported in each of
+     * its classes, and the walks up the parents stop where it closes.
+     */
+    private void checkParent(ClassDeclaration node)
+    {
+        if (node.getParentName() == null || currentClass == null)
+        {
+            return;
+        }
+
+        StructSymbol parent = parentOf(currentClass);
+
+        if (parent == null)
+        {
+            error(node, "La clase padre '" + node.getParentName() + "' no existe: declarela en '"
+                    + node.getParentName() + ".z' e importe ese archivo.", node.getParentName());
+        }
+        else if (lineage(parent).contains(currentClass))
+        {
+            error(node, "Herencia ciclica: la clase '" + node.getName() + "' termina heredando de si misma ("
+                    + lineage(currentClass).stream().map(Symbol::getName).collect(Collectors.joining(" -> "))
+                    + " -> " + node.getName() + "); quite uno de esos extends.", node.getName());
+        }
+    }
+
+    /**
+     * Polymorphism: a method with the name and the parameters of an inherited
+     * one overrides it. It has to say so with @Override, which the statement
+     * makes mandatory, return the same type and reach as far. A private method
+     * is not inherited, so nothing overrides it.
+     */
+    private void checkOverride(FunctionDeclaration method)
+    {
+        FunctionSymbol mine = method.getSymbol();
+
+        // Without its parent what it inherits is unknown, and checkParent already said why.
+        if (mine == null || method.isConstructor() || currentClass == null
+                || currentClass.getParentName() != null && parentOf(currentClass) == null)
+        {
+            return;
+        }
+
+        FunctionSymbol inherited = overridden(mine, method.getName());
+        String         subject   = "El metodo '" + mine.getSignature() + "'";
+
+        if (inherited == null)
+        {
+            if (method.isOverride())
+            {
+                error(method, subject + " tiene @Override pero no sobrescribe ningun metodo heredado: quite "
+                        + "@Override, o escriba el nombre y los parametros del metodo del padre.", "@Override");
+            }
+            return;
+        }
+
+        Visibility own     = mine.getVisibility();
+        Visibility parents = inherited.getVisibility();
+
+        // Only the first one: they are reported at the same spot.
+        if (mine.getType() != inherited.getType()
+                || !Objects.equals(mine.getReturnStructName(), inherited.getReturnStructName()))
+        {
+            error(method, subject + " sobrescribe a '" + inherited.getSignature() + "' y debe retornar lo mismo que "
+                    + "el: '" + inherited.getTypeText() + "'.", method.getName());
+        }
+        else if (own == Visibility.PRIVATE || own == Visibility.PROTECTED && parents != Visibility.PROTECTED)
+        {
+            error(method, subject + " es " + own.name().toLowerCase() + " y sobrescribe a '"
+                    + inherited.getSignature() + "', que es " + parents.name().toLowerCase()
+                    + ": no puede reducir su visibilidad.", method.getName());
+        }
+        else if (!method.isOverride())
+        {
+            error(method, subject + " sobrescribe a '" + inherited.getSignature() + "': escriba @Override antes "
+                    + "de su declaracion.", method.getName());
+        }
+    }
+
+    /** The method it overrides: the nearest inherited one with its name and parameters, if not private. */
+    private FunctionSymbol overridden(FunctionSymbol method, String name)
+    {
+        return lineage(currentClass).stream().skip(1)
+                .flatMap(parent -> symbolTable.lookupFunctions(parent.getName() + "." + name).stream())
+                .filter(inherited -> !inherited.isConstructor() && inherited.getVisibility() != Visibility.PRIVATE
+                        && inherited.hasSameParameters(method))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /** The class and the ones it inherits from, nearest first; empty for null. */
+    private List<StructSymbol> lineage(StructSymbol type)
+    {
+        List<StructSymbol> chain = new ArrayList<>();
+
+        for (StructSymbol current = type; current != null && !chain.contains(current); current = parentOf(current))
+        {
+            chain.add(current);
+        }
+        return chain;
+    }
+
+    /** The class a class extends; null without extends, or when it names no class. */
+    private StructSymbol parentOf(StructSymbol type)
+    {
+        StructSymbol parent = symbolTable.lookupStruct(type.getParentName());
+
+        return parent != null && parent.isClass() ? parent : null;
+    }
+
+    /** A class is a subclass of itself and of every class it inherits from. */
+    private boolean isSubclass(String type, String ancestor)
+    {
+        return lineage(symbolTable.lookupStruct(type)).stream().anyMatch(struct -> struct.getName().equals(ancestor));
+    }
+
+    /** Its own attribute with that name or, failing that, the nearest inherited one; null when there is none. */
+    private VariableSymbol attributeOf(StructSymbol type, String name)
+    {
+        return lineage(type).stream()
+                .map(owner -> owner.getAttribute(name))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     /* =================================================================
@@ -1979,9 +2233,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     /** The attribute a member access names, once its owner was visited; null when there is none. */
     private VariableSymbol attributeOf(MemberAccessExpression member)
     {
-        StructSymbol struct = symbolTable.lookupStruct(member.getOwner().getStructName());
-
-        return struct == null ? null : struct.getAttribute(member.getMemberName());
+        return attributeOf(symbolTable.lookupStruct(member.getOwner().getStructName()), member.getMemberName());
     }
 
     /** Dimensions of a whole array; 0 for any other value. */
@@ -2005,8 +2257,11 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     }
 
     /**
-     * Same as TypeSystem.isAssignable, plus the rule TypeSystem cannot express:
-     * two different structuras are both ESTRUCTURA, but a Persona is not a Carro.
+     * Same as TypeSystem.isAssignable, plus the rules TypeSystem cannot express:
+     * two different structuras are both ESTRUCTURA, but a Persona is not a Carro,
+     * and an object of a subclass fits where its parent is expected, not the
+     * other way round (Fase 8). PigLatin's null (Fase 9) is an object that does
+     * not exist yet: it only fits a class.
      */
     private boolean assignable(DataType target, String targetStruct,
                                DataType source, String sourceStruct)
@@ -2015,11 +2270,37 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         {
             return false;
         }
+        if (source == DataType.NULO && language == Language.PIG && target != DataType.ERROR)
+        {
+            StructSymbol type = symbolTable.lookupStruct(targetStruct);
+
+            return type != null && type.isClass();
+        }
         if (target == DataType.ESTRUCTURA && source == DataType.ESTRUCTURA)
         {
-            return targetStruct != null && targetStruct.equals(sourceStruct);
+            return targetStruct != null
+                    && (targetStruct.equals(sourceStruct) || isSubclass(sourceStruct, targetStruct));
         }
         return true;
+    }
+
+    /**
+     * The rule behind a value that does not fit, where it is not the obvious
+     * one: an object fits a variable of its class or of a parent class, and
+     * PigLatin's null only an object. Empty for every other value.
+     */
+    private String fitHint(String targetStruct, DataType source, String sourceStruct)
+    {
+        if (source == DataType.NULO && language == Language.PIG)
+        {
+            return ": null solo se asigna a un objeto";
+        }
+
+        StructSymbol target = symbolTable.lookupStruct(targetStruct);
+        StructSymbol value  = symbolTable.lookupStruct(sourceStruct);
+
+        return target != null && value != null && target.isClass() && value.isClass()
+               ? ": '" + sourceStruct + "' no es '" + targetStruct + "' ni una de sus clases hijas" : "";
     }
 
     /**

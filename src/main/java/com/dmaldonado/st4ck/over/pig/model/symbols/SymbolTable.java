@@ -57,6 +57,12 @@ public class SymbolTable
         return added;
     }
 
+    /** Declares in the current scope a symbol listed already: an attribute inside its subclass. */
+    public void declareInherited(Symbol symbol)
+    {
+        currentScope.declare(symbol);
+    }
+
     /** @return false if an overload with the same parameter types already exists. */
     public boolean declareFunction(FunctionSymbol function)
     {

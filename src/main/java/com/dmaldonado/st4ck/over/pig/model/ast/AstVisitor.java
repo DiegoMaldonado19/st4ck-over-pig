@@ -37,6 +37,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.statement.IncrementStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.InputStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.PrintStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.ReturnStatement;
+import com.dmaldonado.st4ck.over.pig.model.ast.statement.SuperConstructorCall;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.SwitchStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.WhileStatement;
 
@@ -74,6 +75,7 @@ public interface AstVisitor<T>
     T visitInputStatement(InputStatement node);
     T visitExpressionStatement(ExpressionStatement node);
     T visitIncrementStatement(IncrementStatement node);
+    T visitSuperConstructorCall(SuperConstructorCall node);
 
     T visitBinaryExpression(BinaryExpression node);
     T visitUnaryExpression(UnaryExpression node);

@@ -34,6 +34,8 @@ public class FunctionDeclaration extends AstNode
     private final boolean         constructor;
     /** Of a constructor or method; a free function is DEFAULT. */
     private final Visibility      visibility;
+    /** A method written with @Override: it says it overrides an inherited one. */
+    private final boolean         override;
 
     /** Set by the semantic analyzer: null when the signature was rejected as a duplicate. */
     private FunctionSymbol symbol;
@@ -43,12 +45,13 @@ public class FunctionDeclaration extends AstNode
                                int line, int column)
     {
         this(name, returnTypeText, parameters, localVariables, body, returnsValue, null, false,
-                Visibility.DEFAULT, line, column);
+                Visibility.DEFAULT, false, line, column);
     }
 
     public FunctionDeclaration(String name, String returnTypeText, List<Parameter> parameters,
                                List<AstNode> localVariables, Block body, boolean returnsValue,
-                               String ownerClass, boolean constructor, Visibility visibility, int line, int column)
+                               String ownerClass, boolean constructor, Visibility visibility, boolean override,
+                               int line, int column)
     {
         super(line, column);
         this.name           = name;
@@ -61,6 +64,7 @@ public class FunctionDeclaration extends AstNode
         this.ownerClass     = ownerClass;
         this.constructor    = constructor;
         this.visibility     = visibility;
+        this.override       = override;
     }
 
     public String getName()
@@ -114,6 +118,11 @@ public class FunctionDeclaration extends AstNode
         return visibility;
     }
 
+    public boolean isOverride()
+    {
+        return override;
+    }
+
     public FunctionSymbol getSymbol()
     {
         return symbol;
@@ -135,7 +144,8 @@ public class FunctionDeclaration extends AstNode
     {
         if (ownerClass != null)
         {
-            return constructor ? "constructor " + name : "metodo " + returnTypeText + " " + name;
+            return constructor ? "constructor " + name
+                    : (override ? "@Override " : "") + "metodo " + returnTypeText + " " + name;
         }
         return (returnsValue ? "ratio " + returnTypeText + " " : "actio ") + name;
     }

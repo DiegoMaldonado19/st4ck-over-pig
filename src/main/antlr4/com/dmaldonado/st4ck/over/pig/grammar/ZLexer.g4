@@ -18,6 +18,11 @@ RETURN  : 'return' ;
 NEW     : 'new' ;
 THIS    : 'this' ;
 
+// Herencia y polimorfismo
+EXTENDS  : 'extends' ;
+SUPER    : 'super' ;
+OVERRIDE : '@Override' ;
+
 // Tipos
 INT_T     : 'int' ;
 DOUBLE_T  : 'double' ;

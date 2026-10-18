@@ -41,6 +41,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.statement.IncrementStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.InputStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.PrintStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.ReturnStatement;
+import com.dmaldonado.st4ck.over.pig.model.ast.statement.SuperConstructorCall;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.SwitchStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.WhileStatement;
 import com.dmaldonado.st4ck.over.pig.model.symbols.FunctionSymbol;
@@ -48,12 +49,14 @@ import com.dmaldonado.st4ck.over.pig.model.symbols.Symbol;
 import com.dmaldonado.st4ck.over.pig.model.symbols.SymbolCategory;
 import com.dmaldonado.st4ck.over.pig.model.symbols.SymbolTable;
 import com.dmaldonado.st4ck.over.pig.model.symbols.VariableSymbol;
+import com.dmaldonado.st4ck.over.pig.model.symbols.Visibility;
 import com.dmaldonado.st4ck.over.pig.model.types.DataType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,8 +73,8 @@ import java.util.regex.Pattern;
  *
  * What outlives a call lives in the heap, reserved by moving H (design, 3):
  * an array is [sizes | cells], a structure [fields] and an object [class id |
- * fields]. A variable holds the address of its block, so passing it passes
- * it by reference.
+ * fields of its parents | its own fields]. A variable holds the address of its
+ * block, so passing it passes it by reference.
  */
 public class ThreeAddressGenerator implements AstVisitor<String>
 {
@@ -111,8 +114,10 @@ public class ThreeAddressGenerator implements AstVisitor<String>
 
     /** Layout of every structure and class: a field's index is its place in the block. */
     private final Map<String, StructDeclaration> layouts  = new HashMap<>();
-    /** The id each class writes first in its objects, 1..n: what a polymorphic call reads (Fase 8). */
-    private final Map<String, Integer>           classIds = new HashMap<>();
+    /** The id each class writes first in its objects, 1..n in that order: what a polymorphic call reads (Fase 8). */
+    private final Map<String, Integer>           classIds = new LinkedHashMap<>();
+    /** Every class by its name: whom it extends. */
+    private final Map<String, ClassDeclaration>  classes  = new HashMap<>();
 
     private int      temporaryCount;
     private int      labelCount;
@@ -148,11 +153,12 @@ public class ThreeAddressGenerator implements AstVisitor<String>
                 }
                 else if (global instanceof ClassDeclaration type)
                 {
-                    layouts.put(type.getName(), type.getLayout());
+                    classes.put(type.getName(), type);
                     classIds.put(type.getName(), classIds.size() + 1);
                 }
             }
         }
+        classes.values().forEach(type -> layouts.put(type.getName(), layout(type)));
         language = root.getLanguage();
 
         // VARIABILES> of the .pig holds the only globals: they are named here, before any local.
@@ -570,12 +576,12 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         }
         if (node.getExpression() instanceof FunctionCallExpression call)
         {
-            call(call.getFunction(), implicitReceiver(call.getFunction()), call.getArguments(), false);
+            functionCall(call, false);
             return null;
         }
         if (node.getExpression() instanceof MethodCallExpression call)
         {
-            call(call.getFunction(), call.getOwner().accept(this), call.getArguments(), false);
+            methodCall(call, false);
             return null;
         }
         if (node.getExpression() instanceof ReadExpression)
@@ -591,6 +597,14 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     public String visitIncrementStatement(IncrementStatement node)
     {
         increment(node.getTarget(), node.getOperator());
+        return null;
+    }
+
+    /** super(...): the parent's constructor on the same object, ahead of the rest of this one (design, 4.6). */
+    @Override
+    public String visitSuperConstructorCall(SuperConstructorCall node)
+    {
+        call(node.getConstructor(), self, null, node.getArguments(), false);
         return null;
     }
 
@@ -710,13 +724,25 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     @Override
     public String visitFunctionCallExpression(FunctionCallExpression node)
     {
-        return call(node.getFunction(), implicitReceiver(node.getFunction()), node.getArguments(), true);
+        return functionCall(node, true);
     }
 
     /** A method called without an object, from another one of its class, runs on the same object. */
-    private String implicitReceiver(FunctionSymbol callee)
+    private String functionCall(FunctionCallExpression node, boolean wantResult)
     {
-        return callee.isMethod() ? self : null;
+        FunctionSymbol callee = node.getFunction();
+
+        return callee.isMethod() ? call(callee, self, function.getOwnerClass(), node.getArguments(), wantResult)
+                                 : call(callee, null, null, node.getArguments(), wantResult);
+    }
+
+    /** obj.m() runs the version of the class of obj; super.m() the parent's, without dispatch. */
+    private String methodCall(MethodCallExpression node, boolean wantResult)
+    {
+        Expression owner = node.getOwner();
+        String     type  = owner instanceof ThisExpression parent && parent.isSuper() ? null : owner.getStructName();
+
+        return call(node.getFunction(), owner.accept(this), type, node.getArguments(), wantResult);
     }
 
     /**
@@ -724,9 +750,12 @@ public class ThreeAddressGenerator implements AstVisitor<String>
      * call: a call inside an argument never ends up between them (design,
      * 4.4). The object of a method goes first, as this. Each argument goes as
      * its parameter's type, 2 into a decimalis is 2.0; an array goes as it
-     * is, its address.
+     * is, its address. A method that a subclass of receiverType overrides is
+     * dispatched by the class id of the object; without receiverType the call
+     * is direct.
      */
-    private String call(FunctionSymbol callee, String receiver, List<Expression> arguments, boolean wantResult)
+    private String call(FunctionSymbol callee, String receiver, String receiverType, List<Expression> arguments,
+                        boolean wantResult)
     {
         List<String> values = new ArrayList<>();
 
@@ -741,21 +770,124 @@ public class ThreeAddressGenerator implements AstVisitor<String>
             values.add(parameter.isArray() ? arguments.get(i).accept(this)
                                            : operand(arguments.get(i), parameter.getType()));
         }
+
+        Map<FunctionSymbol, List<Integer>> versions = receiverType == null ? Map.of()
+                                                      : overrides(callee, receiverType);
+        String                             classId  = versions.isEmpty() ? null : load(receiver);
+
         for (String value : values)
         {
             emit("param", value, "", "");
         }
 
         String result = wantResult && callee.returnsValue() ? newTemporary() : "";
+        String count  = String.valueOf(values.size());
 
-        emit("call", functionName(callee), String.valueOf(values.size()), result);
+        if (versions.isEmpty())
+        {
+            emit("call", functionName(callee), count, result);
+        }
+        else
+        {
+            dispatch(callee, versions, classId, count, result);
+        }
         return result.isEmpty() ? null : result;
+    }
+
+    /**
+     * if classId == k goto its version, for each class that runs another one;
+     * the callee when none matches; and each other version behind its label
+     * (design, 4.6). The params are loaded already: a comparison does not
+     * touch a0-a7, so every call takes them.
+     */
+    private void dispatch(FunctionSymbol callee, Map<FunctionSymbol, List<Integer>> versions, String classId,
+                          String count, String result)
+    {
+        String                      end    = newLabel();
+        Map<FunctionSymbol, String> labels = new LinkedHashMap<>();
+
+        versions.forEach((version, ids) ->
+        {
+            String target = newLabel();
+
+            labels.put(version, target);
+            ids.forEach(id -> emit("if==", classId, String.valueOf(id), target));
+        });
+        emit("call", functionName(callee), count, result);
+        labels.forEach((version, target) ->
+        {
+            jump(end);
+            label(target);
+            emit("call", functionName(version), count, result);
+        });
+        label(end);
+    }
+
+    /**
+     * The versions of a method that an object of receiverType may run instead
+     * of the callee, each with the ids of the classes that run it: those of
+     * its subclasses that override it or inherit an override. Empty when none
+     * does, and for a private method, which nothing overrides.
+     */
+    private Map<FunctionSymbol, List<Integer>> overrides(FunctionSymbol callee, String receiverType)
+    {
+        Map<FunctionSymbol, List<Integer>> versions = new LinkedHashMap<>();
+
+        if (callee.getVisibility() == Visibility.PRIVATE)
+        {
+            return versions;
+        }
+        classIds.forEach((type, id) ->
+        {
+            // A subclass of the receiver's type, itself left out.
+            if (lineage(type).indexOf(receiverType) > 0)
+            {
+                FunctionSymbol version = implementation(callee, type);
+
+                if (version != callee)
+                {
+                    versions.computeIfAbsent(version, key -> new ArrayList<>()).add(id);
+                }
+            }
+        });
+        return versions;
+    }
+
+    /** The version of a method a class runs: the nearest one up its parents with the same parameters. */
+    private FunctionSymbol implementation(FunctionSymbol method, String type)
+    {
+        String name = method.getName().substring(method.getOwnerClass().length() + 1);
+
+        for (String owner : lineage(type))
+        {
+            for (FunctionSymbol version : symbolTable.lookupFunctions(owner + "." + name))
+            {
+                if (!version.isConstructor() && version.hasSameParameters(method))
+                {
+                    return version;
+                }
+            }
+        }
+        return method;
+    }
+
+    /** The class and the ones it inherits from, nearest first. */
+    private List<String> lineage(String type)
+    {
+        List<String> chain = new ArrayList<>();
+
+        for (ClassDeclaration current = classes.get(type); current != null;
+             current = classes.get(current.getParentName()))
+        {
+            chain.add(current.getName());
+        }
+        return chain;
     }
 
     @Override
     public String visitMethodCallExpression(MethodCallExpression node)
     {
-        return call(node.getFunction(), node.getOwner().accept(this), node.getArguments(), true);
+        return methodCall(node, true);
     }
 
     /** novus / new: the object is reserved with its class id, and its constructor fills it as this (design, 4.6). */
@@ -764,7 +896,7 @@ public class ThreeAddressGenerator implements AstVisitor<String>
     {
         String object = allocate(node.getClassName(), new HashSet<>());
 
-        call(node.getConstructor(), object, node.getArguments(), false);
+        call(node.getConstructor(), object, null, node.getArguments(), false);
         return object;
     }
 
@@ -1256,9 +1388,30 @@ public class ThreeAddressGenerator implements AstVisitor<String>
         return type == DataType.ESTRUCTURA && !classIds.containsKey(typeText) ? typeText : null;
     }
 
+    /**
+     * The fields of an object of a class: its parents' first, so an inherited
+     * field is at the same offset as in an object of the parent, where the
+     * parent's methods read it (design, 3).
+     */
+    private StructDeclaration layout(ClassDeclaration type)
+    {
+        ClassDeclaration parent = classes.get(type.getParentName());
+
+        if (parent == null)
+        {
+            return type.getLayout();
+        }
+
+        List<StructField> fields = new ArrayList<>(layout(parent).getFields());
+
+        fields.addAll(type.getLayout().getFields());
+        return new StructDeclaration(type.getName(), fields, type.getLine(), type.getColumn());
+    }
+
+    /** The last field with that name: the one a subclass declares hides the one it inherits, as in Java. */
     private static int fieldIndex(StructDeclaration struct, String fieldName)
     {
-        for (int i = 0; i < struct.getFields().size(); i++)
+        for (int i = struct.getFields().size() - 1; i >= 0; i--)
         {
             if (struct.getFields().get(i).getName().equals(fieldName))
             {

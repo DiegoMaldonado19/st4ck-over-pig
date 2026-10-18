@@ -9,6 +9,9 @@ options { tokenVocab = ZLexer; }
  *   - encapsulamiento: public, private, protected o ninguno (default) en
  *     cada atributo, metodo y constructor; el semantico valida el acceso
  *   - 'this' es el objeto del metodo: this.x, this.m() y this solo
+ *   - herencia simple: class Perro extends Animal. super(...) llama al
+ *     constructor del padre y super.m(...) a su version de un metodo; el
+ *     semantico exige el @Override de un metodo que sobrescribe a otro
  *   - dangling else: IF ... instruccion ( ELSE instruccion )? es voraz, asi el
  *     'else' queda con el 'if' mas cercano, como en Java
  *   - 'switch' con fallthrough: 'break' es opcional
@@ -22,13 +25,15 @@ options { tokenVocab = ZLexer; }
  * ===================================================================== */
 programa : declaracionClase EOF ;
 
-declaracionClase : PUBLIC? CLASS ID LLAVE_IZQ miembro* LLAVE_DER ;
+declaracionClase : PUBLIC? CLASS ID herencia? LLAVE_IZQ miembro* LLAVE_DER ;
+
+herencia : EXTENDS ID ;
 
 // La lectura adelantada distingue las tres: "Pila(" es constructor,
 // "tipo nombre(" es metodo y "tipo nombre =" o "tipo nombre;" es atributo.
 miembro
     : visibilidad? ID PAR_IZQ listaParametros? PAR_DER bloque                            # constructor
-    | visibilidad? ( tipo | VOID ) ID PAR_IZQ listaParametros? PAR_DER bloque           # metodo
+    | OVERRIDE? visibilidad? ( tipo | VOID ) ID PAR_IZQ listaParametros? PAR_DER bloque # metodo
     | visibilidad? tipo ID ( ASIGNACION inicializador )? PUNTO_COMA                     # atributo
     ;
 
@@ -60,6 +65,7 @@ instruccion
     | BREAK PUNTO_COMA                                                         # instruccionBreak
     | CONTINUE PUNTO_COMA                                                      # instruccionContinue
     | ( PRINT | PRINTLN ) PAR_IZQ expresion? PAR_DER PUNTO_COMA                # instruccionImprimir
+    | SUPER PAR_IZQ listaExpresiones? PAR_DER PUNTO_COMA                       # instruccionSuper
     | expresion PUNTO_COMA                                                     # instruccionExpresion
     | PUNTO_COMA                                                               # instruccionVacia
     ;
@@ -133,6 +139,7 @@ expresionPrimaria
     | FALSE                                       # primariaFalso
     | NULL                                        # primariaNulo
     | THIS                                        # primariaThis
+    | SUPER PUNTO ID PAR_IZQ listaExpresiones? PAR_DER # primariaSuper
     | READLN PAR_IZQ PAR_DER                      # primariaLeer
     | NEW tipoBase ( COR_IZQ expresion COR_DER )+ # primariaNuevoArreglo
     | NEW ID PAR_IZQ listaExpresiones? PAR_DER    # primariaNuevo

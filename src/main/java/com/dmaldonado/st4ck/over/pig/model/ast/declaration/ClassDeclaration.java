@@ -16,16 +16,19 @@ import java.util.List;
 public class ClassDeclaration extends AstNode
 {
     private final String                    name;
+    /** The class it extends; null without extends. */
+    private final String                    parentName;
     private final StructDeclaration         layout;
     private final List<FunctionDeclaration> methods;
 
-    public ClassDeclaration(String name, StructDeclaration layout, List<FunctionDeclaration> methods,
-                            int line, int column)
+    public ClassDeclaration(String name, String parentName, StructDeclaration layout,
+                            List<FunctionDeclaration> methods, int line, int column)
     {
         super(line, column);
-        this.name           = name;
-        this.layout         = layout;
-        this.methods        = methods;
+        this.name       = name;
+        this.parentName = parentName;
+        this.layout     = layout;
+        this.methods    = methods;
     }
 
     public String getName()
@@ -33,7 +36,12 @@ public class ClassDeclaration extends AstNode
         return name;
     }
 
-    /** The attributes, in declaration order: an attribute's index is its offset in the object. */
+    public String getParentName()
+    {
+        return parentName;
+    }
+
+    /** Its own attributes, in declaration order; in the object they follow those of its parents. */
     public StructDeclaration getLayout()
     {
         return layout;
@@ -54,7 +62,7 @@ public class ClassDeclaration extends AstNode
     @Override
     public String getLabel()
     {
-        return "class " + name;
+        return "class " + name + (parentName == null ? "" : " extends " + parentName);
     }
 
     @Override

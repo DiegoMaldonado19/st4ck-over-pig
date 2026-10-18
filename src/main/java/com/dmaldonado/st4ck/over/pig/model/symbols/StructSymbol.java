@@ -15,6 +15,8 @@ import java.util.Map;
 public class StructSymbol extends Symbol
 {
     private final Map<String, VariableSymbol> attributes = new LinkedHashMap<>();
+    /** The class a class extends, by name: it may be registered after this one. Null without one. */
+    private String                            parentName;
 
     public StructSymbol(String name, String scopeName, boolean classType, int line, int column)
     {
@@ -47,19 +49,25 @@ public class StructSymbol extends Symbol
         return attributes.get(name);
     }
 
-    public boolean hasAttribute(String name)
-    {
-        return attributes.containsKey(name);
-    }
-
     public Map<String, VariableSymbol> getAttributes()
     {
         return attributes;
     }
 
+    public String getParentName()
+    {
+        return parentName;
+    }
+
+    public void setParentName(String parentName)
+    {
+        this.parentName = parentName;
+    }
+
     @Override
     public String getDetail()
     {
-        return attributes.size() + " atributo(s): " + String.join(", ", attributes.keySet());
+        return (parentName == null ? "" : "hereda de " + parentName + ", ")
+                + attributes.size() + " atributo(s): " + String.join(", ", attributes.keySet());
     }
 }

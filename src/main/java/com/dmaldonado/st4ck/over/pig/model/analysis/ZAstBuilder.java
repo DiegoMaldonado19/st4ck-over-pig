@@ -45,6 +45,7 @@ import com.dmaldonado.st4ck.over.pig.model.ast.statement.ForStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.IfStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.PrintStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.ReturnStatement;
+import com.dmaldonado.st4ck.over.pig.model.ast.statement.SuperConstructorCall;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.SwitchStatement;
 import com.dmaldonado.st4ck.over.pig.model.ast.statement.WhileStatement;
 import com.dmaldonado.st4ck.over.pig.model.symbols.Visibility;
@@ -61,7 +62,8 @@ import org.antlr.v4.runtime.tree.ParseTree;
  *
  * Desugared here, so no later phase needs a node of its own:
  *   x += e                 x = x + e
- *   int total = 0;         the first statement of every constructor
+ *   int total = 0;         a statement of every constructor, after super(...)
+ *   no super(...)          Java's implicit super() in a constructor of a subclass
  *   no constructor         an empty one, as in Java
  *   if (c) una;            the single statement wrapped in a Block
  *
@@ -76,6 +78,8 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
 
     /** Class being built: every constructor and method belongs to it. */
     private String className;
+    /** The class it extends, null without one: each of its constructors starts by calling the parent's. */
+    private String parentName;
 
     public Program build(ZParser.ProgramaContext parseTree)
     {
@@ -101,7 +105,8 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         {
             return null;
         }
-        className = ctx.ID().getText();
+        className  = ctx.ID().getText();
+        parentName = ctx.herencia() == null || missing(ctx.herencia().ID()) ? null : ctx.herencia().ID().getText();
 
         List<StructField>         fields       = new ArrayList<>();
         List<AstNode>             initializers = new ArrayList<>();
@@ -126,12 +131,14 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         List<FunctionDeclaration> members = withInitializers(methods, initializers, ctx);
         StructDeclaration         layout  = new StructDeclaration(className, fields, line(ctx), column(ctx));
 
-        return new ClassDeclaration(className, layout, members, line(ctx), column(ctx));
+        return new ClassDeclaration(className, parentName, layout, members, line(ctx), column(ctx));
     }
 
     /**
-     * The attribute initializers run first in every constructor, as Java does;
-     * without a constructor, Java's empty default. They live in a method of
+     * Every constructor of a subclass calls its parent's first: the super(...)
+     * it writes or, as in Java, an implicit super(). Then the attribute
+     * initializers run, as Java does, and then the rest of its body; without a
+     * constructor, Java's empty default. The initializers live in a method of
      * their own that each constructor calls: there a constructor parameter
      * cannot stand in for an attribute of the same name, and each initializer
      * is analysed once.
@@ -149,31 +156,61 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         }
         members.addAll(methods);
 
-        if (initializers.isEmpty())
+        if (initializers.isEmpty() && parentName == null)
         {
             return members;
         }
 
-        AstNode call = new ExpressionStatement(new FunctionCallExpression(INITIALIZERS, List.of(),
-                line(ctx), column(ctx)), line(ctx), column(ctx));
+        List<AstNode> call = initializers.isEmpty() ? List.of()
+                : List.of(new ExpressionStatement(new FunctionCallExpression(INITIALIZERS, List.of(),
+                        line(ctx), column(ctx)), line(ctx), column(ctx)));
 
         members = new ArrayList<>(members.stream()
                 .map(method -> !method.isConstructor() ? method
-                        : constructor(method.getName(), method.getParameters(),
-                                prepend(List.of(call), method.getBody()), method.getVisibility(), method.getLine(),
-                                method.getColumn()))
+                        : constructor(method.getName(), method.getParameters(), opening(method, call),
+                                method.getVisibility(), method.getLine(), method.getColumn()))
                 .toList());
-        members.add(new FunctionDeclaration(INITIALIZERS, "void", List.of(), List.of(),
-                new Block(initializers, line(ctx), column(ctx)), false, className, false, Visibility.PRIVATE,
-                line(ctx), column(ctx)));
+        if (!initializers.isEmpty())
+        {
+            members.add(new FunctionDeclaration(INITIALIZERS, "void", List.of(), List.of(),
+                    new Block(initializers, line(ctx), column(ctx)), false, className, false, Visibility.PRIVATE,
+                    false, line(ctx), column(ctx)));
+        }
         return members;
+    }
+
+    /**
+     * The body of a constructor behind its parent's constructor and the
+     * initializers. A super(...) written further down stays there, for the
+     * analyzer to report, and takes the place of the implicit one.
+     */
+    private Block opening(FunctionDeclaration constructor, List<AstNode> initializers)
+    {
+        Block         body    = constructor.getBody();
+        List<AstNode> written = body.getStatements();
+        List<AstNode> first   = new ArrayList<>();
+        int           start   = 0;
+
+        if (!written.isEmpty() && written.get(0) instanceof SuperConstructorCall)
+        {
+            first.add(written.get(0));
+            start = 1;
+        }
+        else if (parentName != null && written.stream().noneMatch(SuperConstructorCall.class::isInstance))
+        {
+            first.add(new SuperConstructorCall(new ArrayList<>(), true, constructor.getLine(),
+                    constructor.getColumn()));
+        }
+        first.addAll(initializers);
+        first.addAll(written.subList(start, written.size()));
+        return new Block(first, body.getLine(), body.getColumn());
     }
 
     private FunctionDeclaration constructor(String name, List<Parameter> parameters, Block body,
                                             Visibility visibility, int line, int column)
     {
         return new FunctionDeclaration(name, "void", parameters, List.of(), body, false, className,
-                true, visibility, line, column);
+                true, visibility, false, line, column);
     }
 
     /** No modifier is Java's default. */
@@ -185,14 +222,6 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         }
         return ctx.PRIVATE() != null ? Visibility.PRIVATE
              : ctx.PROTECTED() != null ? Visibility.PROTECTED : Visibility.PUBLIC;
-    }
-
-    private static Block prepend(List<AstNode> statements, Block body)
-    {
-        List<AstNode> all = new ArrayList<>(statements);
-
-        all.addAll(body.getStatements());
-        return new Block(all, body.getLine(), body.getColumn());
     }
 
     @Override
@@ -217,7 +246,7 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         }
         return new FunctionDeclaration(ctx.ID().getText(), returnsValue ? ctx.tipo().getText() : "void",
                 parameters(ctx.listaParametros()), List.of(), body, returnsValue, className, false,
-                visibility(ctx.visibilidad()), line(ctx), column(ctx));
+                visibility(ctx.visibilidad()), ctx.OVERRIDE() != null, line(ctx), column(ctx));
     }
 
     /**
@@ -687,6 +716,15 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         return new PrintStatement(values, ctx.PRINTLN() != null, line(ctx), column(ctx));
     }
 
+    /** super(...) as written; where the analyzer finds it decides whether it is valid. */
+    @Override
+    public AstNode visitInstruccionSuper(ZParser.InstruccionSuperContext ctx)
+    {
+        List<Expression> arguments = expressionList(ctx.listaExpresiones());
+
+        return arguments == null ? null : new SuperConstructorCall(arguments, false, line(ctx), column(ctx));
+    }
+
     @Override
     public AstNode visitInstruccionExpresion(ZParser.InstruccionExpresionContext ctx)
     {
@@ -845,6 +883,17 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
     public AstNode visitPrimariaThis(ZParser.PrimariaThisContext ctx)
     {
         return new ThisExpression(line(ctx), column(ctx));
+    }
+
+    /** super.m(...) is a call on the same object, seen as its parent class. */
+    @Override
+    public AstNode visitPrimariaSuper(ZParser.PrimariaSuperContext ctx)
+    {
+        List<Expression> arguments = expressionList(ctx.listaExpresiones());
+
+        return (missing(ctx.ID()) || arguments == null) ? null
+                : new MethodCallExpression(new ThisExpression(true, line(ctx), column(ctx)), ctx.ID().getText(),
+                        arguments, line(ctx), column(ctx));
     }
 
     @Override
