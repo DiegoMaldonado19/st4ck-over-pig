@@ -30,9 +30,13 @@ declaracionGlobal
  * 2. DECLARACIONES
  * ===================================================================== */
 
+// esto p : novus Profesor(..) : Persona;  el tipo explicito es el de la variable,
+// y el novus puede crear una clase hija suya. esto p : null : Persona;  un
+// objeto que todavia no existe.
 declaracionVariable
     : ESTO ID DOS_PUNTOS tipo ASIGNACION? literalCompuesto PUNTO_COMA?  # declaracionVariableEstructura
-    | ESTO ID DOS_PUNTOS nuevoObjeto PUNTO_COMA                         # declaracionVariableObjeto
+    | ESTO ID DOS_PUNTOS nuevoObjeto ( DOS_PUNTOS tipo )? PUNTO_COMA    # declaracionVariableObjeto
+    | ESTO ID DOS_PUNTOS NULO DOS_PUNTOS tipo PUNTO_COMA                # declaracionVariableNula
     | ESTO ID DOS_PUNTOS tipo ( ASIGNACION? expresion )? PUNTO_COMA     # declaracionVariableSimple
     ;
 
@@ -202,6 +206,7 @@ expresionPrimaria
     | CARACTER                     # primariaCaracter
     | VERUM                        # primariaVerdadero
     | FALSUS                       # primariaFalso
+    | NULO                         # primariaNulo
     | llamadaFuncion               # primariaLlamada
     | nuevoObjeto                  # primariaNovus
     | ID                           # primariaIdentificador

@@ -166,7 +166,11 @@ public class PigAstBuilder extends PigParserBaseVisitor<AstNode>
                 line(ctx), column(ctx));
     }
 
-    /** "esto o : novus Persona(12);": the class named after novus is also the type. */
+    /**
+     * "esto o : novus Profesor(12) : Persona;": the explicit type is the
+     * variable's, and the analyzer checks the novus creates it or a subclass
+     * of it. Without one, the class named after novus is also the type.
+     */
     @Override
     public AstNode visitDeclaracionVariableObjeto(PigParser.DeclaracionVariableObjetoContext ctx)
     {
@@ -174,7 +178,20 @@ public class PigAstBuilder extends PigParserBaseVisitor<AstNode>
         {
             return null;
         }
-        return new VariableDeclaration(ctx.ID().getText(), object.getClassName(), object,
+        return new VariableDeclaration(ctx.ID().getText(),
+                ctx.tipo() == null ? object.getClassName() : ctx.tipo().getText(), object, line(ctx), column(ctx));
+    }
+
+    /** "esto o : null : Persona;": an object of that class that does not exist yet. */
+    @Override
+    public AstNode visitDeclaracionVariableNula(PigParser.DeclaracionVariableNulaContext ctx)
+    {
+        if (missing(ctx.ID(), ctx.tipo()))
+        {
+            return null;
+        }
+        return new VariableDeclaration(ctx.ID().getText(), ctx.tipo().getText(),
+                new LiteralExpression(ctx.NULO().getText(), DataType.NULO, line(ctx), column(ctx)),
                 line(ctx), column(ctx));
     }
 
@@ -656,6 +673,13 @@ public class PigAstBuilder extends PigParserBaseVisitor<AstNode>
     public AstNode visitPrimariaFalso(PigParser.PrimariaFalsoContext ctx)
     {
         return new LiteralExpression(ctx.getText(), DataType.BOOLEANO, line(ctx), column(ctx));
+    }
+
+    /** null as a value: si (x == null), x = null; */
+    @Override
+    public AstNode visitPrimariaNulo(PigParser.PrimariaNuloContext ctx)
+    {
+        return new LiteralExpression(ctx.getText(), DataType.NULO, line(ctx), column(ctx));
     }
 
     @Override

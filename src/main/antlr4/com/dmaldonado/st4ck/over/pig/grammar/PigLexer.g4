@@ -40,8 +40,9 @@ ACTIO      : 'actio' ;
 RATIO      : 'ratio' ;
 REDDERE    : 'reddere' ;
 
-// Instanciacion de un objeto definido en un archivo .z
+// Instanciacion de un objeto definido en un archivo .z, y el objeto que no existe
 NOVUS      : 'novus' ;
+NULO       : 'null' ;
 
 // Negacion logica
 NON        : 'non' ;
