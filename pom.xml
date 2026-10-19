@@ -9,6 +9,20 @@
         <maven.compiler.release>21</maven.compiler.release>
         <antlr.version>4.13.2</antlr.version>
     </properties>
+    <!-- RARS is not in Maven Central: its jar travels with the repository, in lib/ laid out as a
+         Maven repository. A system scope dependency would compile but miss javafx:run's classpath. -->
+    <repositories>
+        <repository>
+            <id>project-lib</id>
+            <url>${project.baseUri}lib</url>
+            <releases>
+                <checksumPolicy>ignore</checksumPolicy>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
     <dependencies>
         <dependency>
             <groupId>org.openjfx</groupId>
@@ -24,6 +38,12 @@
             <groupId>org.fxmisc.richtext</groupId>
             <artifactId>richtextfx</artifactId>
             <version>0.11.3</version>
+        </dependency>
+        <!-- RARS 1.6 (MIT license): the app runs its RISC-V on RARS's simulator. -->
+        <dependency>
+            <groupId>rars</groupId>
+            <artifactId>rars</artifactId>
+            <version>1.6</version>
         </dependency>
     </dependencies>
     <build>

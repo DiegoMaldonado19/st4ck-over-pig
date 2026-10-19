@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>rars</groupId>
+    <artifactId>rars</artifactId>
+    <version>1.6</version>
+    <name>RARS 1.6 - RISC-V Assembler and Runtime Simulator (MIT license)</name>
+    <url>https://github.com/TheThirdOne/rars</url>
+</project>

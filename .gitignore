@@ -13,6 +13,8 @@ bin/
 
 *.class
 *.jar
+# RARS, the simulator the app runs its RISC-V on: not in Maven Central
+!lib/rars/rars/1.6/rars-1.6.jar
 *.war
 *.ear
 hs_err_pid*
