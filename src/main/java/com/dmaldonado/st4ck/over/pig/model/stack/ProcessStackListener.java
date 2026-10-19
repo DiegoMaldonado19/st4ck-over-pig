@@ -20,7 +20,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
  * la prediccion ALL(*) puede probar una regla y retroceder, y el mismo paso
  * saldria dos veces o fuera de orden.
  *
- * Mapeo evento a accion: docs/05-Manual-Tecnico.md (11)
+ * Mapeo evento a accion: docs/MANUAL_TECNICO.docx, "Pila de procesos".
  */
 public class ProcessStackListener implements ParseTreeListener
 {

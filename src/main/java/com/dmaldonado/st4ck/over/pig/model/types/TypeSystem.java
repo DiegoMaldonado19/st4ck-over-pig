@@ -4,7 +4,7 @@ package com.dmaldonado.st4ck.over.pig.model.types;
  * Reglas de compatibilidad de tipos. Todo metodo devuelve ERROR cuando la
  * combinacion es invalida, y el analizador sigue caminando con ese ERROR.
  *
- * La tabla completa es el entregable docs/03-Tabla-de-Tipos.md
+ * La tabla completa esta en docs/MANUAL_TECNICO.docx, "Tabla de compatibilidad de tipos".
  */
 public final class TypeSystem
 {

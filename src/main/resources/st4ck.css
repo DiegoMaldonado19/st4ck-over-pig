@@ -2,8 +2,8 @@
  *  Paleta del editor.
  *
  *  Quien decide que clase lleva cada palabra es HighlightingCodeArea, con
- *  el LatinLexer real; aqui solo se dice de que color se pinta cada clase.
- *  Los colores son los de Iteracion II (Constants.java), adaptados a CSS.
+ *  el lexer real de cada lenguaje; aqui solo se dice de que color se pinta
+ *  cada clase.
  *
  *  Todas las reglas van anidadas bajo .source-editor a proposito: JavaFX ya
  *  usa "text" como clase de estilo interna de cada Label, asi que una regla

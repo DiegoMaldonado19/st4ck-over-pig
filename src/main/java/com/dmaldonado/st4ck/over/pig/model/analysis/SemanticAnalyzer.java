@@ -2340,7 +2340,7 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
      * funcion. Reporta, pero el simbolo se declara igual para no encadenar un
      * "no declarada" en cada uso posterior. Y? declara en cualquier parte.
      *
-     * MAIOR> queda fuera a proposito (desviacion declarada en docs/05): alli
+     * MAIOR> queda fuera a proposito (desviacion declarada en el manual tecnico): alli
      * visitProgram nunca levanta la bandera, y los si / ciclos la heredan.
      */
     private void requireDeclarationPlace(AstNode node, String name)
