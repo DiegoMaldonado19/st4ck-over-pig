@@ -130,7 +130,8 @@ public final class ProcessStackPanel extends BorderPane
         return descriptions;
     }
 
-    private static VBox titled(String title, Node content)
+    /** A panel under its title: the console of MainView is built the same way. */
+    static VBox titled(String title, Node content)
     {
         Label label = new Label(title);
         label.getStyleClass().add("panel-title");

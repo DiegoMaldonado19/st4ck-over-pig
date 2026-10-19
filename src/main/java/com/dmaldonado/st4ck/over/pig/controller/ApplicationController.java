@@ -2,6 +2,8 @@ package com.dmaldonado.st4ck.over.pig.controller;
 
 import com.dmaldonado.st4ck.over.pig.model.CompilerPipeline;
 import com.dmaldonado.st4ck.over.pig.model.CompilerPipeline.CompilationResult;
+import com.dmaldonado.st4ck.over.pig.model.RiscVRunner;
+import com.dmaldonado.st4ck.over.pig.model.RiscVRunner.RunResult;
 import com.dmaldonado.st4ck.over.pig.model.ast.AstNode;
 import com.dmaldonado.st4ck.over.pig.model.errors.CompilerError;
 import com.dmaldonado.st4ck.over.pig.util.Constants;
@@ -16,6 +18,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableRow;
@@ -38,6 +41,7 @@ public class ApplicationController
     private final MainView         view;
     private final Stage            stage;
     private final CompilerPipeline compiler = new CompilerPipeline();
+    private final RiscVRunner      runner   = new RiscVRunner();
     private final FileController   files;
 
     private CompilationResult lastResult;
@@ -68,6 +72,7 @@ public class ApplicationController
         view.getSaveAllButton().setOnAction(event -> saveAll());
         view.getExportFolderButton().setOnAction(event -> exportFolder());
         view.getCompileButton().setOnAction(event -> compile());
+        view.getRunButton().setOnAction(event -> run());
         view.getExportAssemblyButton().setOnAction(event -> exportAssembly());
         view.getExportTreeButton().setOnAction(event -> exportTree());
         view.getEditorTabs().getSelectionModel().selectedItemProperty()
@@ -130,15 +135,17 @@ public class ApplicationController
      * Compiles the file the user is looking at. The imports are read from
      * disk, so the other open files are saved first: what the tabs show is
      * what gets compiled.
+     *
+     * @return true when it was translated to RISC-V, which only a .pig without errors is.
      */
-    private void compile()
+    private boolean compile()
     {
         EditorTab editor = view.getActiveEditor();
 
         if (editor == null)
         {
             view.setStatus("Abra o cree un archivo para compilar.", false);
-            return;
+            return false;
         }
         for (EditorTab open : view.getEditors())
         {
@@ -160,6 +167,7 @@ public class ApplicationController
         view.showQuadruples(lastResult.quadruples());
         view.showThreeAddressCode(lastResult.threeAddressCode());
         view.showAssembly(lastResult.assembly());
+        view.showProgramOutput("");
 
         // Un .y o un .z valido no se traduce: no tiene MAIOR que ejecutar.
         boolean translated = !lastResult.assembly().isEmpty();
@@ -171,6 +179,57 @@ public class ApplicationController
 
         view.setStatus(summaryOf(lastResult), lastResult.isValid());
         view.showResultTab(translated);
+        return translated;
+    }
+
+    /**
+     * "Ejecutar": compiles what the user sees and runs its RISC-V inside the
+     * app, on what the console's input holds. RARS runs apart from the window,
+     * which stays usable, and one program at a time: the button waits for it.
+     */
+    private void run()
+    {
+        if (!compile())
+        {
+            return;
+        }
+
+        String          assembly  = lastResult.assembly();
+        String          input     = view.getProgramInput();
+        Task<RunResult> execution = new Task<>()
+        {
+            @Override
+            protected RunResult call()
+            {
+                return runner.run(assembly, input);
+            }
+        };
+
+        execution.setOnSucceeded(event -> showRun(execution.getValue()));
+        execution.setOnFailed(event ->
+        {
+            LOGGER.log(Level.SEVERE, "Fallo interno al ejecutar el RISC-V", execution.getException());
+            showRun(new RunResult("", "Error interno al ejecutar: " + execution.getException(), false));
+        });
+        view.getRunButton().setDisable(true);
+        view.setStatus("Ejecutando el RISC-V en RARS...");
+
+        Thread thread = new Thread(execution, "riscv-run");
+
+        thread.setDaemon(true);   // closing the window does not wait for a program that never ends
+        thread.start();
+    }
+
+    /** The output, closed by how the program ended, the way RARS closes its own: "-- ... --". */
+    private void showRun(RunResult result)
+    {
+        String output = result.output();
+
+        view.getRunButton().setDisable(false);
+        view.showProgramOutput(output + (output.isEmpty() || output.endsWith("\n") ? "" : "\n")
+                + "-- " + result.status() + " --");
+        view.setStatus(result.status(), result.successful());
+        view.showConsoleTab();
     }
 
     private static String summaryOf(CompilationResult result)

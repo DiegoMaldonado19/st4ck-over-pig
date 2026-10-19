@@ -10,6 +10,7 @@ import java.util.function.Function;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -45,12 +46,15 @@ public final class MainView extends BorderPane {
     private final TableView<Quadruple> quadrupleTable = new TableView<>();
     private final TextArea threeAddressCode = new TextArea();
     private final TextArea assembly    = new TextArea();
+    private final TextArea programInput  = new TextArea();
+    private final TextArea programOutput = new TextArea();
     private final TabPane tabs = new TabPane();
 
     // Como campos y no como indices: reordenar las pestanas no puede mandar al
     // usuario a la equivocada.
     private final Tab errorTab    = new Tab("Errores", errorTable);
     private final Tab assemblyTab = new Tab("RISC-V", assembly);
+    private final Tab consoleTab  = new Tab("Consola");
 
     private final Button openFolderButton = new Button("Abrir carpeta");
     private final Button newButton = new Button("Nuevo archivo");
@@ -61,6 +65,7 @@ public final class MainView extends BorderPane {
     private final Button saveAllButton = new Button("Guardar todo");
     private final Button exportFolderButton = new Button("Descargar carpeta");
     private final Button compileButton = new Button("Compilar");
+    private final Button runButton = new Button("Ejecutar");
     private final Button exportAssemblyButton = new Button("Descargar .asm");
     private final Button exportTreeButton = new Button("Exportar arbol");
 
@@ -72,8 +77,9 @@ public final class MainView extends BorderPane {
         buildSymbolTable();
         buildQuadrupleTable();
         buildTrees();
+        buildConsole();
 
-        for (TextArea output : List.of(threeAddressCode, assembly))
+        for (TextArea output : List.of(threeAddressCode, assembly, programOutput))
         {
             output.setEditable(false);
             output.getStyleClass().add("code-output");
@@ -99,10 +105,11 @@ public final class MainView extends BorderPane {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         compileButton.getStyleClass().add("compile-button");
+        runButton.getStyleClass().add("compile-button");
 
         return new ToolBar(openFolderButton, newButton, newFolderButton, openButton, new Separator(),
                 saveButton, saveAsButton, saveAllButton, exportFolderButton, new Separator(),
-                compileButton, new Separator(), exportAssemblyButton, exportTreeButton, spacer, fileLabel);
+                compileButton, runButton, new Separator(), exportAssemblyButton, exportTreeButton, spacer, fileLabel);
     }
 
     /** Folder tree | open files | results, left to right. */
@@ -115,7 +122,8 @@ public final class MainView extends BorderPane {
                 new Tab("Pila de procesos", stackPanel),
                 new Tab("Cuartetas", quadrupleTable),
                 new Tab("Codigo 3D", threeAddressCode),
-                assemblyTab);
+                assemblyTab,
+                consoleTab);
 
         SplitPane split = new SplitPane(workspaceTree, editors, tabs);
         split.setDividerPositions(0.16, 0.56);
@@ -212,6 +220,18 @@ public final class MainView extends BorderPane {
         addColumn(quadrupleTable, "Resultado", 180, Quadruple::result);
     }
 
+    /** What the program reads, written before it runs, over what it printed. */
+    private void buildConsole()
+    {
+        SplitPane console = new SplitPane(ProcessStackPanel.titled("Entrada: una linea por cada lectura", programInput),
+                                          ProcessStackPanel.titled("Salida", programOutput));
+
+        programInput.getStyleClass().add("code-output");
+        console.setOrientation(Orientation.VERTICAL);
+        console.setDividerPositions(0.25);
+        consoleTab.setContent(console);
+    }
+
     /**
      * Lambda y no PropertyValueFactory: esa resuelve el getter por reflexion
      * sobre un String y fallaria en ejecucion con una columna vacia. La columna
@@ -282,6 +302,11 @@ public final class MainView extends BorderPane {
         quadrupleTable.setItems(FXCollections.observableArrayList(quadruples));
     }
 
+    public void showProgramOutput(String output)
+    {
+        programOutput.setText(output);
+    }
+
     public void setStatus(String message) {
         statusLabel.setText(message);
         statusLabel.getStyleClass().removeAll("status-ok", "status-error");
@@ -301,6 +326,11 @@ public final class MainView extends BorderPane {
         tabs.getSelectionModel().select(successful ? assemblyTab : errorTab);
     }
 
+    public void showConsoleTab()
+    {
+        tabs.getSelectionModel().select(consoleTab);
+    }
+
     /*
      * ================================================================
      * Accessors for the controller
@@ -310,6 +340,12 @@ public final class MainView extends BorderPane {
     public String getAssemblyText()
     {
         return assembly.getText();
+    }
+
+    /** What the program will read: one line per read. */
+    public String getProgramInput()
+    {
+        return programInput.getText();
     }
 
     /** The file the user is looking at; null when no file is open. */
@@ -390,6 +426,11 @@ public final class MainView extends BorderPane {
 
     public Button getCompileButton() {
         return compileButton;
+    }
+
+    public Button getRunButton()
+    {
+        return runButton;
     }
 
     public Button getExportAssemblyButton()
