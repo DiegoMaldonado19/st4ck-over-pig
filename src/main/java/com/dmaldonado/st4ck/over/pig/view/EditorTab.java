@@ -26,6 +26,11 @@ public final class EditorTab extends Tab
                 : FileManager.extensionOf(path.getFileName().toString()));
 
         codeArea.replaceText(content);
+        // The file opens at its first line, and Ctrl+Z cannot undo the loading: it would empty the tab, and
+        // compiling saves every modified tab.
+        codeArea.moveTo(0);
+        codeArea.requestFollowCaret();
+        codeArea.getUndoManager().forgetHistory();
         codeArea.textProperty().addListener((observable, oldText, newText) -> setModified(true));
         setContent(new VirtualizedScrollPane<>(codeArea));
         setModified(false);
