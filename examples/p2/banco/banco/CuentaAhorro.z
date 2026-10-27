@@ -1,0 +1,17 @@
+public class CuentaAhorro extends Cuenta {
+    private double tasa;
+
+    public CuentaAhorro(String titular, int numero, double tasa) {
+        this.titular = titular;
+        this.numero = numero;
+        this.tasa = tasa;
+        this.tipo = "Ahorro";
+    }
+
+    @Override
+    public void finDeMes() {
+        double interes = getSaldo() * tasa;
+        ajustarSaldo(interes);
+        println(titular + " recibe intereses: " + interes + " -> saldo " + getSaldo());
+    }
+}

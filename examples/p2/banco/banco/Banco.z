@@ -1,0 +1,44 @@
+public class Banco {
+    Cuenta[] cuentas;
+    int cantidad;
+
+    public Banco() {
+        cuentas = new Cuenta[10];
+        cantidad = 0;
+    }
+
+    public boolean agregar(Cuenta c) {
+        if (cantidad >= 10)
+            return false;
+        cuentas[cantidad] = c;
+        cantidad++;
+        return true;
+    }
+
+    public Cuenta buscar(int numero) {
+        for (int i = 0; i < cantidad; i++) {
+            if (cuentas[i].getNumero() == numero)
+                return cuentas[i];
+        }
+        return null;
+    }
+
+    public double totalDepositado() {
+        double total = 0.0;
+        for (int i = 0; i < cantidad; i++)
+            total += cuentas[i].getSaldo();
+        return total;
+    }
+
+    public void finDeMes() {
+        println("=== FIN DE MES ===");
+        for (int i = 0; i < cantidad; i++)
+            cuentas[i].finDeMes();
+    }
+
+    public void imprimirResumen() {
+        println("=== RESUMEN DEL BANCO ===");
+        for (int i = 0; i < cantidad; i++)
+            cuentas[i].describir();
+    }
+}

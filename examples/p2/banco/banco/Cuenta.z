@@ -1,0 +1,77 @@
+public class Cuenta {
+    private double saldo;
+    protected String titular;
+    protected int numero;
+    protected String tipo;
+    protected int movimientos; // sin modificador seria como private y CuentaCorriente lo usa (auxiliar, 24-oct)
+
+    public Cuenta() {
+        saldo = 0.0;
+        titular = "Sin titular";
+        numero = 0;
+        tipo = "Basica";
+        movimientos = 0;
+    }
+
+    public Cuenta(String titular, int numero) {
+        this.titular = titular;
+        this.numero = numero;
+        this.saldo = 0.0;
+        this.tipo = "Basica";
+        this.movimientos = 0;
+    }
+
+    public double getSaldo() {
+        return saldo;
+    }
+
+    public String getTitular() {
+        return titular;
+    }
+
+    public int getNumero() {
+        return numero;
+    }
+
+    protected void ajustarSaldo(double delta) {
+        saldo += delta;
+    }
+
+    public void depositar(double monto) {
+        if (monto <= 0) {
+            println("Monto invalido");
+            return;
+        }
+        saldo += monto;
+        movimientos++;
+        println(titular + " deposita " + monto + " -> saldo " + saldo);
+    }
+
+    public boolean retirar(double monto) {
+        if (monto <= 0 || monto > saldo) {
+            println(titular + ": fondos insuficientes para retirar " + monto);
+            return false;
+        }
+        saldo -= monto;
+        movimientos++;
+        println(titular + " retira " + monto + " -> saldo " + saldo);
+        return true;
+    }
+
+    public boolean transferir(Cuenta destino, double monto) {
+        println(titular + " intenta transferir " + monto + " a " + destino.getTitular());
+        if (this.retirar(monto)) {
+            destino.depositar(monto);
+            return true;
+        }
+        return false;
+    }
+
+    public void finDeMes() {
+        println(titular + ": sin cambios a fin de mes");
+    }
+
+    public void describir() {
+        println("[" + numero + "] " + titular + " (" + tipo + ") saldo: " + saldo + " | movimientos: " + movimientos);
+    }
+}

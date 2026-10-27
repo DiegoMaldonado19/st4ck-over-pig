@@ -1,0 +1,38 @@
+public class CuentaCorriente extends Cuenta {
+    private double limite;
+
+    public CuentaCorriente(String titular, int numero, double limite) {
+        this.titular = titular;
+        this.numero = numero;
+        this.limite = limite;
+        this.tipo = "Corriente";
+    }
+
+    @Override
+    public boolean retirar(double monto) {
+        if (monto <= 0 || monto > getSaldo() + limite) {
+            println(titular + ": excede el limite de sobregiro, no puede retirar " + monto);
+            return false;
+        }
+        ajustarSaldo(0 - monto);
+        movimientos++;
+        println(titular + " retira " + monto + " (sobregiro permitido) -> saldo " + getSaldo());
+        return true;
+    }
+
+    @Override
+    public void finDeMes() {
+        if (getSaldo() < 0) {
+            double cargo = getSaldo() * 0.05;
+            ajustarSaldo(cargo);
+            println(titular + " paga cargo por sobregiro: " + cargo + " -> saldo " + getSaldo());
+        } else {
+            println(titular + ": sin sobregiro este mes");
+        }
+    }
+
+    @Override
+    public void describir() {
+        println("[" + numero + "] " + titular + " (" + tipo + ") saldo: " + getSaldo() + " | limite sobregiro: " + limite + " | movimientos: " + movimientos);
+    }
+}

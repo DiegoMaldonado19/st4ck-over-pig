@@ -1,0 +1,38 @@
+=== BANCO ZETARIANO ===
+--- Depositos iniciales ---
+Ana deposita 2000.0 -> saldo 2000.0
+Beto deposita 300.0 -> saldo 300.0
+Carla deposita 100.0 -> saldo 100.0
+--- Operaciones ---
+Ana intenta transferir 500.0 a Beto
+Ana retira 500.0 -> saldo 1500.0
+Beto deposita 500.0 -> saldo 800.0
+Comision sugerida: 1.5
+Beto retira 1200.0 (sobregiro permitido) -> saldo -400.0
+Comision sugerida: 12.0
+Beto: excede el limite de sobregiro, no puede retirar 200.0
+Retiro rechazado
+Carla: fondos insuficientes para retirar 150.0
+Retiro rechazado
+Carla intenta transferir 50.0 a Ana
+Carla retira 50.0 -> saldo 50.0
+Ana deposita 50.0 -> saldo 1550.0
+Comision sugerida: 0.0
+=== FIN DE MES ===
+Ana recibe intereses: 77.5 -> saldo 1627.5
+Beto paga cargo por sobregiro: -20.0 -> saldo -420.0
+Carla: sin cambios a fin de mes
+=== RESUMEN DEL BANCO ===
+[1001] Ana (Ahorro) saldo: 1627.5 | movimientos: 3
+[1002] Beto (Corriente) saldo: -420.0 | limite sobregiro: 500.0 | movimientos: 3
+[1003] Carla (Basica) saldo: 50.0 | movimientos: 2
+Total depositado en el banco: 1257.5
+--- Busquedas ---
+Cuenta 1002 pertenece a Beto
+Cuenta 9999 no encontrada
+===== BITACORA =====
+Movimientos anotados: 3
+  #0: 500.0
+  #1: 1200.0
+  #2: 50.0
+Total movido: 1750.0
