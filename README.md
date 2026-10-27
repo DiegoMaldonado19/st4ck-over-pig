@@ -288,14 +288,14 @@ Cada programa de `examples/` se compila desde su `.pig`. Junto a él están lo q
 
 ## Manuales
 
-- [Manual de usuario](docs/MANUAL_USUARIO.docx):
+- [Manual de usuario](docs/MANUAL_USUARIO.pdf):
   - instalación y arranque;
   - la ventana, archivos y carpetas;
   - escribir en los tres lenguajes, compilar y leer los errores;
   - los resultados;
   - ejecutar dentro de la aplicación y comprobar en RARS;
   - ejemplos y problemas frecuentes.
-- [Manual técnico](docs/MANUAL_TECNICO.docx):
+- [Manual técnico](docs/MANUAL_TECNICO.pdf):
   - tecnologías, instalación y arquitectura;
   - diagrama de clases;
   - palabras reservadas y símbolos, y gramáticas;
