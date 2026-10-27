@@ -23,12 +23,12 @@ public class StructField extends AstNode
     private final int        size;
     /** Dimensions: 0 for a value, 1 for an array; Zetariano can write more (int[][] m). */
     private final int        rank;
-    /** Only a Zetariano attribute can write one: a structure field is always DEFAULT. */
+    /** Only a Zetariano attribute can write one: a structure field is always PUBLIC. */
     private final Visibility visibility;
 
     public StructField(String name, String typeText, boolean array, int size, int line, int column)
     {
-        this(name, typeText, array ? 1 : 0, size, Visibility.DEFAULT, line, column);
+        this(name, typeText, array ? 1 : 0, size, Visibility.PUBLIC, line, column);
     }
 
     public StructField(String name, String typeText, int rank, int size, Visibility visibility, int line,

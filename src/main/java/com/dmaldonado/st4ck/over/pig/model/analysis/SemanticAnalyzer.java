@@ -1401,10 +1401,10 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     }
 
     /**
-     * Encapsulation: what is private is only used inside its own class, on
-     * any object of it, as in Java, and what is protected inside its
-     * subclasses too. Without packages (auxiliar, 15-oct) default reaches as
-     * far as public.
+     * Encapsulation: what is private or default is only used inside its own
+     * class, on any object of it, as in Java, and what is protected inside
+     * its subclasses too. Without packages default works like private
+     * (auxiliar, 22-oct and 24-oct).
      *
      * ponytail: the overload is chosen first and its access checked after;
      * Java leaves the inaccessible ones out before choosing.
@@ -1413,15 +1413,16 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     {
         boolean reached = switch (visibility)
         {
-            case PRIVATE   -> currentClass != null && currentClass.getName().equals(ownerClass);
-            case PROTECTED -> currentClass != null && isSubclass(currentClass.getName(), ownerClass);
-            default        -> true;
+            case PRIVATE, DEFAULT -> currentClass != null && currentClass.getName().equals(ownerClass);
+            case PROTECTED        -> currentClass != null && isSubclass(currentClass.getName(), ownerClass);
+            default               -> true;
         };
 
         if (!reached)
         {
-            error(node, member + (visibility == Visibility.PRIVATE
-                    ? " es private: solo puede usarse dentro de la clase '" + ownerClass + "'."
+            error(node, member + (visibility.isClassOnly()
+                    ? " es " + (visibility == Visibility.PRIVATE ? "private" : "default (sin modificador)")
+                      + ": solo puede usarse dentro de la clase '" + ownerClass + "'."
                     : " es protected: solo puede usarse dentro de la clase '" + ownerClass
                       + "' y de sus clases hijas."), lexeme);
         }
@@ -1900,8 +1901,9 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
     /**
      * Polymorphism: a method with the name and the parameters of an inherited
      * one overrides it. It has to say so with @Override, which the statement
-     * makes mandatory, return the same type and reach as far. A private method
-     * is not inherited, so nothing overrides it.
+     * makes mandatory, return the same type, or one of its subclasses when it
+     * returns an object (auxiliar, 19-oct), and reach as far. A private or
+     * default method is not inherited, so nothing overrides it.
      */
     private void checkOverride(FunctionDeclaration method)
     {
@@ -1932,12 +1934,15 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
 
         // Only the first one: they are reported at the same spot.
         if (mine.getType() != inherited.getType()
-                || !Objects.equals(mine.getReturnStructName(), inherited.getReturnStructName()))
+                || !Objects.equals(mine.getReturnStructName(), inherited.getReturnStructName())
+                   && !isSubclass(mine.getReturnStructName(), inherited.getReturnStructName()))
         {
             error(method, subject + " sobrescribe a '" + inherited.getSignature() + "' y debe retornar lo mismo que "
-                    + "el: '" + inherited.getTypeText() + "'.", method.getName());
+                    + "el: '" + inherited.getTypeText() + "'"
+                    + (inherited.getReturnStructName() != null ? " o una de sus clases hijas." : "."),
+                    method.getName());
         }
-        else if (own == Visibility.PRIVATE || own == Visibility.PROTECTED && parents != Visibility.PROTECTED)
+        else if (own.isClassOnly() || own == Visibility.PROTECTED && parents != Visibility.PROTECTED)
         {
             error(method, subject + " es " + own.name().toLowerCase() + " y sobrescribe a '"
                     + inherited.getSignature() + "', que es " + parents.name().toLowerCase()
@@ -1950,12 +1955,12 @@ public class SemanticAnalyzer implements AstVisitor<DataType>
         }
     }
 
-    /** The method it overrides: the nearest inherited one with its name and parameters, if not private. */
+    /** The method it overrides: the nearest inherited one with its name and parameters, if not private or default. */
     private FunctionSymbol overridden(FunctionSymbol method, String name)
     {
         return lineage(currentClass).stream().skip(1)
                 .flatMap(parent -> symbolTable.lookupFunctions(parent.getName() + "." + name).stream())
-                .filter(inherited -> !inherited.isConstructor() && inherited.getVisibility() != Visibility.PRIVATE
+                .filter(inherited -> !inherited.isConstructor() && !inherited.getVisibility().isClassOnly()
                         && inherited.hasSameParameters(method))
                 .findFirst()
                 .orElse(null);

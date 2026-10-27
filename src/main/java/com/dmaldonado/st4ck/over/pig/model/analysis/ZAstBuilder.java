@@ -138,7 +138,7 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
      * Every constructor of a subclass calls its parent's first: the super(...)
      * it writes or, as in Java, an implicit super(). Then the attribute
      * initializers run, as Java does, and then the rest of its body; without a
-     * constructor, Java's empty default. The initializers live in a method of
+     * constructor, Java's public empty one. The initializers live in a method of
      * their own that each constructor calls: there a constructor parameter
      * cannot stand in for an attribute of the same name, and each initializer
      * is analysed once.
@@ -152,7 +152,7 @@ public class ZAstBuilder extends ZParserBaseVisitor<AstNode>
         if (methods.stream().noneMatch(FunctionDeclaration::isConstructor))
         {
             members.add(constructor(className, new ArrayList<>(),
-                    new Block(new ArrayList<>(), line(ctx), column(ctx)), Visibility.DEFAULT, line(ctx), column(ctx)));
+                    new Block(new ArrayList<>(), line(ctx), column(ctx)), Visibility.PUBLIC, line(ctx), column(ctx)));
         }
         members.addAll(methods);
 

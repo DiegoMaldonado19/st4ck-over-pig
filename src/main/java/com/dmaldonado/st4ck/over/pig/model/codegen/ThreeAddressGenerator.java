@@ -49,7 +49,6 @@ import com.dmaldonado.st4ck.over.pig.model.symbols.Symbol;
 import com.dmaldonado.st4ck.over.pig.model.symbols.SymbolCategory;
 import com.dmaldonado.st4ck.over.pig.model.symbols.SymbolTable;
 import com.dmaldonado.st4ck.over.pig.model.symbols.VariableSymbol;
-import com.dmaldonado.st4ck.over.pig.model.symbols.Visibility;
 import com.dmaldonado.st4ck.over.pig.model.types.DataType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -827,13 +826,13 @@ public class ThreeAddressGenerator implements AstVisitor<String>
      * The versions of a method that an object of receiverType may run instead
      * of the callee, each with the ids of the classes that run it: those of
      * its subclasses that override it or inherit an override. Empty when none
-     * does, and for a private method, which nothing overrides.
+     * does, and for a private or default method, which nothing overrides.
      */
     private Map<FunctionSymbol, List<Integer>> overrides(FunctionSymbol callee, String receiverType)
     {
         Map<FunctionSymbol, List<Integer>> versions = new LinkedHashMap<>();
 
-        if (callee.getVisibility() == Visibility.PRIVATE)
+        if (callee.getVisibility().isClassOnly())
         {
             return versions;
         }
