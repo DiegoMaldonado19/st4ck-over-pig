@@ -1,5 +1,5 @@
-// Clase hija que intenta usar lo private de Cuenta: su constructor y cada
-// linea de espiar son un error (la lista esta en la cabecera de errores.pig).
+// Clase hija que intenta usar lo private y lo default de Cuenta: sus
+// constructores y cada linea de espiar son un error (cabecera de errores.pig).
 public class CuentaEspia extends Cuenta {
     public CuentaEspia() {
         super();
@@ -10,5 +10,11 @@ public class CuentaEspia extends Cuenta {
         pin = 0;
         boolean ok = validarPin(1234);
         boolean otra = this.validarPin(robado);
+        saldo = 5;
+        abonarInteres();
+    }
+
+    public CuentaEspia(String titularInicial) {
+        super(titularInicial);
     }
 }

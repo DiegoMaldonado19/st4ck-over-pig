@@ -1,8 +1,10 @@
 // Superclase (clase padre) del enunciado. 'energia' es private: sigue dentro
 // de cada objeto de una clase hija, porque comer() y describir() la usan,
-// pero ninguna hija puede nombrarla (lo intenta Leon.z).
+// pero ninguna hija puede nombrarla (lo intenta Leon.z). 'nombre' es public:
+// sin modificador seria como private (auxiliar, 22-oct), y lo usan las hijas
+// y el .pig.
 public class Animal {
-    String nombre;
+    public String nombre;
     private int energia = 10;
 
     public Animal() {

@@ -1,8 +1,8 @@
 public class Juego {
-    Tablero tablero;
-    Jugador jugador;
-    boolean terminado;
-    String mensaje;
+    public Tablero tablero;
+    public Jugador jugador;
+    public boolean terminado;
+    public String mensaje;
 
     public Juego(String nombreJugador) {
         tablero = new Tablero();

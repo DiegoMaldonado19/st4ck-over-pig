@@ -4,7 +4,7 @@ public class Tablero {
     boolean[][] visitado;
     int filas;
     int columnas;
-    int tesorosRestantes;
+    public int tesorosRestantes;
 
     public Tablero(int f, int c) {
         filas = f;

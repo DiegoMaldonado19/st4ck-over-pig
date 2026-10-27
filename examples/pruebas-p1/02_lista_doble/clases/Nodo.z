@@ -1,7 +1,7 @@
 public class Nodo {
-    int dato;
-    Nodo siguiente;
-    Nodo anterior;
+    public int dato;
+    public Nodo siguiente;
+    public Nodo anterior;
 
     public Nodo(int valor) {
         dato = valor;

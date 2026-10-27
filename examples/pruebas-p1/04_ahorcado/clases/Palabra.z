@@ -1,9 +1,9 @@
 public class Palabra {
     char[] letras;
     boolean[] descubiertas;
-    int longitud;
+    public int longitud;
     int cantidad;
-    String pista;
+    public String pista;
 
     public Palabra(int tamanio, String pistaParametro) {
         letras = new char[tamanio];

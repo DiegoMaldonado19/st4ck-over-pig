@@ -1,12 +1,12 @@
 public class Jugador {
     // Atributos publicos
-    String nombre;
-    int fila;
-    int columna;
-    int puntos;
-    int movimientos;
-    int vidas;
-    char simbolo;
+    public String nombre;
+    public int fila;
+    public int columna;
+    public int puntos;
+    public int movimientos;
+    public int vidas;
+    public char simbolo;
 
     // Constructor principal
     public Jugador(String nombreParametro, int filaInicial, int columnaInicial) {

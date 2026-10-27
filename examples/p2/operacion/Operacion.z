@@ -1,6 +1,8 @@
+// id y valorBase son public: el main del parcial vive dentro de la clase y aqui
+// vive en el .pig, y sin modificador serian como private (auxiliar, 22-oct).
 public class Operacion {
-    int id;
-    int valorBase;
+    public int id;
+    public int valorBase;
 
     public int sumar(int n) {
         if (n <= 0) {

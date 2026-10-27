@@ -64,4 +64,22 @@ public class Cuenta {
     public Cuenta interna(int saldo1) {
         return new Cuenta(saldo1);
     }
+
+    // Lo default funciona como private (auxiliar, 22-oct): fuera de Cuenta se
+    // usa a traves de estos metodos public.
+    public int getSaldo() {
+        return saldo;
+    }
+
+    public void depositar(int monto) {
+        saldo += monto;
+    }
+
+    public void cerrarMes() {
+        abonarInteres();
+    }
+
+    public Cuenta abrir(String titular1) {
+        return new Cuenta(titular1);
+    }
 }

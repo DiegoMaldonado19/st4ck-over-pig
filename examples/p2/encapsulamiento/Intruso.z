@@ -1,5 +1,5 @@
-// Otra clase que intenta usar lo private y lo protected de Cuenta: cada
-// linea de espiar es un error (la lista esta en la cabecera de errores.pig).
+// Otra clase que intenta usar lo private, lo protected y lo default de Cuenta:
+// cada linea de espiar es un error (la lista esta en la cabecera de errores.pig).
 public class Intruso {
     public void espiar(Cuenta cuenta) {
         int pin = cuenta.pin;
@@ -8,5 +8,8 @@ public class Intruso {
         int extra = cuenta.interes();
         Cuenta vacia = new Cuenta();
         Cuenta interna = new Cuenta(5);
+        cuenta.saldo = 5;
+        cuenta.abonarInteres();
+        Cuenta nueva = new Cuenta("Luis");
     }
 }

@@ -1,5 +1,5 @@
 public class Demo {
-    int contador;
+    public int contador;
 
     public Demo() {
         contador = 0;

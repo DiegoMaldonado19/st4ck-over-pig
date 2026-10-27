@@ -1,6 +1,6 @@
 public class Ahorcado {
-    Palabra palabra;
-    int errores;
+    public Palabra palabra;
+    public int errores;
     int maxErrores;
     char[] usadas;
     int numUsadas;

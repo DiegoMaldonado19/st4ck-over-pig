@@ -1,7 +1,7 @@
 public class Persona {
     // Atributos públicos (el encapsulamiento se verá en la Parte 2)
-    String nombre;
-    int edad;
+    public String nombre;
+    public int edad;
 
     // CONSTRUCTOR: Sirve para inicializar el objeto al crearlo
     public Persona(String nombreParametro, int edadParametro) {

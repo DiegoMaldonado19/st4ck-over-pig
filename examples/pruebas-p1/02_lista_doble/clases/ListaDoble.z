@@ -1,7 +1,7 @@
 public class ListaDoble {
-    Nodo cabeza;
-    Nodo cola;
-    int tamanio;
+    public Nodo cabeza;
+    public Nodo cola;
+    public int tamanio;
 
     public ListaDoble() {
         cabeza = null;
